@@ -1,0 +1,29 @@
+All return can also return errors
+  {code: <http status code>, error: <error message>}
+
+/users
+  POST /
+    data: username, password, passwordConfirmation
+    return: {code: <http status code>, user: <user data>, oneTimeToken: <token>}
+    Create a user, gives a one time use token to create a permanent token
+  DELETE /<username>
+    data: token for user
+    return: {code: <http status code>, user: <user data>}
+    Delete a user
+  PATCH /<username>
+    data: username, password, passwordConfirmation, token for user
+    return: {code: <http status code>, user: <user data>}
+    Update data for user
+  /tokens
+    POST /
+      data: token for user, device name
+      return: {code: <http status code>, token: <token>}
+      Returns a permanent token for the device name given
+    DELETE /<deviceName>
+      data: token for user
+      return: {code: <http status code>, token: <token data>}
+      Delete a token
+    PATCH /<deviceName>
+      data: token for user, deviceName
+      return: {code: <http status code>, token: <token data>}
+      Change the data for a token

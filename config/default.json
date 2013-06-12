@@ -1,0 +1,6 @@
+{
+  "LogDir": "logs",
+  "RedisAddr": ":6379",
+  "ServerAddr": ":3000",
+  "MaxTimeoutStr": "2s"
+}
