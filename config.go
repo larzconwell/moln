@@ -13,6 +13,7 @@ type Config struct {
 	ServerAddr    string
 	MaxTimeoutStr string
 	MaxTimeout    time.Duration
+	TLS           *TLS
 }
 
 // Read the given JSON configuration files, returning the final config
