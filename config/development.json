@@ -1,1 +1,5 @@
-{}
+{
+  "RedisAddr": ":6379",
+  "RedisNetwork": "tcp",
+  "ServerAddr": ":3000"
+}

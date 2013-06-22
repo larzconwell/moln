@@ -13,13 +13,11 @@ Moln is eventually going to be a sync server similar to OwnCloud. I plan to make
 - [] Task manager w/ sync?
 
 ### Running the server
-Currently you'll have to start things manually, I'll add a Procfile later for foreman support.
+1. Install Redis, install a [Foreman](https://github.com/ddollar/foreman) tool, and get the code with `go get`
+2. Create any directories needed, `/var/log/redis`
+3. Start the foreman process(e.g. `foreman start -e config/development.env`) with your environment env file.
 
-1. Install Redis, and get the code with `go get`
-2. Start Redis, with the environment config in `/config/redis/`
-3. Start the server, if you used `go get` simply run `moln`, otherwise build and run the binary.
-
-If you want to change the server environment set the `ENVIRONMENT` env variable(e.g. `ENVIRONMENT=production ./moln`).
+Note: When running in production mode on Windows, Redis connects to a UNIX Socket so you may encounter errors
 
 ### License
 MIT, view the included [LICENSE](https://raw.github.com/larzconwell/moln/master/LICENSE) file for details.

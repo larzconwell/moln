@@ -10,6 +10,7 @@ import (
 type Config struct {
 	LogDir        string
 	RedisAddr     string
+	RedisNetwork  string
 	ServerAddr    string
 	MaxTimeoutStr string
 	MaxTimeout    time.Duration

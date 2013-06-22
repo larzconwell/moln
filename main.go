@@ -33,7 +33,8 @@ func main() {
 	}
 	defer logFile.Close()
 
-	db, err := redis.DialTimeout("tcp", config.RedisAddr, config.MaxTimeout, config.MaxTimeout, config.MaxTimeout)
+	db, err := redis.DialTimeout(config.RedisNetwork, config.RedisAddr,
+		config.MaxTimeout, config.MaxTimeout, config.MaxTimeout)
 	if err != nil {
 		errorLogger.Fatal(err)
 	}
