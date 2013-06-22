@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -13,13 +14,35 @@ type TLS struct {
 	Key  string
 }
 
-// Simple 404 handler
+// Simple 404 http.HandlerFunc
 func NotFoundHandler(rw http.ResponseWriter, req *http.Request) {
-	headers := rw.Header()
-	headers.Set("content-type", "application/json; charset=utf-8")
+	ErrResponse(rw, http.StatusNotFound, "")
+}
 
-	rw.WriteHeader(http.StatusNotFound)
-	fmt.Fprint(rw, "{\"error\": \"Not Found\"}")
+// http.Handler to manage the allowed methods for a resource
+type MethodHandler struct {
+	Allowed []string
+	handler http.Handler
+}
+
+func NewMethodHandler(allowed []string, handler http.Handler) http.Handler {
+	return &MethodHandler{
+		Allowed: allowed,
+		handler: handler,
+	}
+}
+
+// ServeHTTP restricts the resource access to a list of methods
+func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	for _, method := range mh.Allowed {
+		if req.Method == method {
+			mh.handler.ServeHTTP(rw, req)
+			return
+		}
+	}
+
+	rw.Header().Set("Allow", strings.Join(mh.Allowed, ", "))
+	ErrResponse(rw, http.StatusMethodNotAllowed, "")
 }
 
 // LogHandler logs the request/response to the given io.Writer in Common Log Format

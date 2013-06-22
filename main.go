@@ -53,8 +53,10 @@ func main() {
 	router.StrictSlash(true)
 	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
-	for name, route := range Routes {
-		router.NewRoute().Name(name).Methods(route.Method).Path(route.Path).HandlerFunc(route.Handler)
+	for name, r := range Routes {
+		route := router.NewRoute()
+		route.Name(name).Path(r.Path)
+		route.Handler(NewMethodHandler(r.Methods, http.HandlerFunc(r.Handler)))
 	}
 
 	server := &http.Server{
