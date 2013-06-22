@@ -13,10 +13,13 @@ type TLS struct {
 	Key  string
 }
 
-// A simple not found handler used for 404s
+// Simple 404 handler
 func NotFoundHandler(rw http.ResponseWriter, req *http.Request) {
+	headers := rw.Header()
+	headers.Set("content-type", "application/json; charset=utf-8")
+
 	rw.WriteHeader(http.StatusNotFound)
-	fmt.Fprint(rw, ErrResponse("Not Found"))
+	fmt.Fprint(rw, "{\"error\": \"Not Found\"}")
 }
 
 // LogHandler logs the request/response to the given io.Writer in Common Log Format

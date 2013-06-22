@@ -9,7 +9,14 @@ import (
 	"path/filepath"
 )
 
-var DB *redis.Conn
+var (
+	DB     *redis.Conn
+	Routes map[string]*Route
+)
+
+func init() {
+	Routes = make(map[string]*Route)
+}
 
 func main() {
 	environment := os.Getenv("ENVIRONMENT")
@@ -46,8 +53,8 @@ func main() {
 	router.StrictSlash(true)
 	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
-	for _, route := range Routes {
-		router.HandleFunc(route.URL, route.Handler).Methods(route.Method)
+	for name, route := range Routes {
+		router.NewRoute().Name(name).Methods(route.Method).Path(route.Path).HandlerFunc(route.Handler)
 	}
 
 	server := &http.Server{
