@@ -14,7 +14,7 @@ Moln is eventually going to be a sync server similar to OwnCloud. I plan to make
 
 ### Running the server
 1. Install Redis, install a [Foreman](https://github.com/ddollar/foreman) tool, and get the code with `go get`
-2. Create any directories needed, `/var/log/redis`
+2. Create any directories needed, `/var/log/redis`, `./db`
 3. Start the foreman process(e.g. `foreman start -e config/development.env`) with your environment env file.
 
 Note: When running in production mode on Windows, Redis connects to a UNIX Socket so you may encounter errors
