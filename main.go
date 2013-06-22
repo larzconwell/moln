@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 	"log"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 )
+
+var DB *redis.Conn
 
 func main() {
 	environment := os.Getenv("ENVIRONMENT")
@@ -39,12 +40,14 @@ func main() {
 		errorLogger.Fatal(err)
 	}
 	defer db.Close()
+	DB = &db
 
 	router := mux.NewRouter()
+	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hi there: %s", r.URL.Path)
-	})
+	for _, route := range Routes {
+		router.HandleFunc(route.URL, route.Handler).Methods(route.Method)
+	}
 
 	server := &http.Server{
 		Addr:         config.ServerAddr,
