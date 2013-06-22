@@ -43,6 +43,7 @@ func main() {
 	DB = &db
 
 	router := mux.NewRouter()
+	router.StrictSlash(true)
 	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
 	for _, route := range Routes {
