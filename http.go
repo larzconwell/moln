@@ -27,12 +27,13 @@ func NewLogHandler(writer io.Writer, handler http.Handler) http.Handler {
 }
 
 // ServeHTTP Logs the request and calls the handler
-func (lh *LogHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	startTime := time.Now()
+func (lh *LogHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	accessTime := time.Now()
 
-	loggedWriter := &responseLogger{w: w}
+	loggedWriter := &responseLogger{responseWriter: rw}
 	lh.handler.ServeHTTP(loggedWriter, req)
 
+	// Get username field if given
 	username := "-"
 	if req.URL.User != nil {
 		name := req.URL.User.Username()
@@ -44,36 +45,39 @@ func (lh *LogHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(lh.writer, "%s %s - [%s] \"%s %s %s\" %d %d\n",
 		req.RemoteAddr,
 		username,
-		startTime.Format("02/Jan/2006:15:04:05 -0700"),
+		accessTime.Format("02/Jan/2006:15:04:05 -0700"),
 		req.Method,
 		req.RequestURI,
 		req.Proto,
 		loggedWriter.status,
-		loggedWriter.size)
+		loggedWriter.length)
 }
 
+// responseLogger implements http.ResponseWriter, keeps log of status code and content length
 type responseLogger struct {
-	w      http.ResponseWriter
-	status int
-	size   int
+	responseWriter http.ResponseWriter
+	status         int
+	length         int
 }
 
 func (rl *responseLogger) Header() http.Header {
-	return rl.w.Header()
+	return rl.responseWriter.Header()
 }
 
+// Write calls the responseWriters write, and keeps track of the content length
 func (rl *responseLogger) Write(b []byte) (int, error) {
 	if rl.status == 0 {
 		// The status will be StatusOk if WriteHeader has not been called
 		rl.status = http.StatusOK
 	}
 
-	size, err := rl.w.Write(b)
-	rl.size += size
+	size, err := rl.responseWriter.Write(b)
+	rl.length += size
 	return size, err
 }
 
-func (rl *responseLogger) WriteHeader(s int) {
-	rl.w.WriteHeader(s)
-	rl.status = s
+// WriteHeader sets the status code, and writes the header to the set reponseWriter
+func (rl *responseLogger) WriteHeader(status int) {
+	rl.responseWriter.WriteHeader(status)
+	rl.status = status
 }
