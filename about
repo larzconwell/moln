@@ -1,29 +1,69 @@
-All return can also return errors
-  {code: <http status code>, error: <error message>}
+If status code is not 2xx then the following is the returned body
+  {error: <message>}
 
-/users
-  POST /
-    data: username, password, passwordConfirmation
-    return: {code: <http status code>, user: <user data>, oneTimeToken: <token>}
-    Create a user, gives a one time use token to create a permanent token
-  DELETE /<username>
-    data: token for user
-    return: {code: <http status code>, user: <user data>}
-    Delete a user
-  PATCH /<username>
-    data: username, password, passwordConfirmation, token for user
-    return: {code: <http status code>, user: <user data>}
-    Update data for user
-  /tokens
+ROUTES:
+  /users
     POST /
-      data: token for user, device name
-      return: {code: <http status code>, token: <token>}
-      Returns a permanent token for the device name given
-    DELETE /<deviceName>
-      data: token for user
-      return: {code: <http status code>, token: <token data>}
-      Delete a token
-    PATCH /<deviceName>
-      data: token for user, deviceName
-      return: {code: <http status code>, token: <token data>}
-      Change the data for a token
+      data: username, password, deviceName
+      return: {user: <user>}
+      msg: Creates a user if available, an initial device is created so a token is available
+      url: /users/
+    /<username>
+      GET /
+        data: token
+        return: {user: <user>}
+        msg: Get a user, if token is not the <username>s, then the users devices token
+          fields are null
+        url: /users/<username>/
+      DELETE /
+        data: token
+        return: {user: <user>}
+        msg: Delete a user
+        url: /users/<username>/
+      PATCH /
+        data: token, <user>
+        return: {old: <user>, new: <user>}
+        msg: Update a users fields, device names can be changed, but token changes are ignored.
+          New devices are ignored as well.
+        url: /users/<username>/
+      /devices
+        GET /
+          data: token
+          return: {devices: [<device, ...>]}
+          msg: Return the users devices, if token is not <username>s, then the token fields
+            are null
+          url: /users/<username>/devices/
+        POST /
+          data: {token OR username, password}, name
+          return: {device: <device>}
+          msg: Create a new device for the user
+          url: /users/<username>/devices/
+        /<name>
+          GET /
+            data: token
+            return: {device: <device>}
+            msg: Return the users device, if token is not <username>s, then the token fields
+              are null
+            url: /users/<username>/devices/<name>/
+          DELETE /
+            data: token
+            return: {device: <device>}
+            msg: Delete a users device
+            url: /users/<username>/devices/<name>/
+          PATCH /
+            data: token, <device>
+            return: {old: <device>, new: <device>}
+            msg: Update a users device, token changes are ignored
+            url: /users/<username>/devices/<name>/
+
+DATA(Doesn't have 1:1 mapping to backend data):
+  user:
+    {
+      username: '',
+      devices: [<device, ...>]
+    }
+  device:
+    {
+      name: '',
+      token: ''
+    }
