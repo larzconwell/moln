@@ -1,7 +1,7 @@
 If status code is not 2xx then the following is the returned body
   {error: <message>}
 
-ROUTES:
+Routes:
   /users
     POST /
       data: username, password, deviceName
@@ -56,14 +56,21 @@ ROUTES:
             msg: Update a users device, token changes are ignored
             url: /users/<username>/devices/<name>/
 
-DATA(Doesn't have 1:1 mapping to backend data):
+Response Data:
   user:
-    {
-      username: '',
-      devices: [<device, ...>]
-    }
+    {username: '', devices: [<device, ...>]}
   device:
-    {
-      name: '',
-      token: ''
-    }
+    {name: '', token: ''}
+
+Backend Data:
+  User:
+    // User details hash
+    "user:<username>" -> username <username> password <password>
+    // Users devices set
+    "user:<username>:devices" -> [name, ...]
+  Device:
+    // Device details hash
+    "device:<name>" -> name <name> token <token> user <username>
+  Token:
+    // Token details hash
+    "token:<token>" -> device <name> user <username>

@@ -10,13 +10,8 @@ import (
 )
 
 var (
-	DB     *redis.Conn
-	Routes map[string]*Route
+	DB redis.Conn
 )
-
-func init() {
-	Routes = make(map[string]*Route)
-}
 
 func main() {
 	environment := os.Getenv("ENVIRONMENT")
@@ -41,13 +36,12 @@ func main() {
 	}
 	defer logFile.Close()
 
-	db, err := redis.DialTimeout(config.RedisNetwork, config.RedisAddr,
+	DB, err = redis.DialTimeout(config.RedisNetwork, config.RedisAddr,
 		config.MaxTimeout, config.MaxTimeout, config.MaxTimeout)
 	if err != nil {
 		errorLogger.Fatal(err)
 	}
-	defer db.Close()
-	DB = &db
+	defer DB.Close()
 
 	router := mux.NewRouter()
 	router.StrictSlash(true)

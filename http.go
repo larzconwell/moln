@@ -14,12 +14,12 @@ type TLS struct {
 	Key  string
 }
 
-// Simple 404 http.HandlerFunc
+// NotFoundHandler is a simple 404 http.HandlerFunc
 func NotFoundHandler(rw http.ResponseWriter, req *http.Request) {
-	ErrResponse(rw, http.StatusNotFound, "")
+	ErrResponse(rw, http.StatusNotFound, nil)
 }
 
-// http.Handler to manage the allowed methods for a resource
+// MethodHandler is a http.Handler to manage allowed methods to a resource
 type MethodHandler struct {
 	Allowed []string
 	handler http.Handler
@@ -32,7 +32,8 @@ func NewMethodHandler(allowed []string, handler http.Handler) http.Handler {
 	}
 }
 
-// ServeHTTP restricts the resource access to a list of methods
+// ServeHTTP Only calls the handler if the request method is allowed, otherwise a 405
+// response is sent
 func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	for _, method := range mh.Allowed {
 		if req.Method == method {
@@ -42,10 +43,10 @@ func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	rw.Header().Set("Allow", strings.Join(mh.Allowed, ", "))
-	ErrResponse(rw, http.StatusMethodNotAllowed, "")
+	ErrResponse(rw, http.StatusMethodNotAllowed, nil)
 }
 
-// LogHandler logs the request/response to the given io.Writer in Common Log Format
+// LogHandler is a http.Handler that logs requests to the writer in Common Log Format
 type LogHandler struct {
 	writer  io.Writer
 	handler http.Handler
@@ -85,7 +86,7 @@ func (lh *LogHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		loggedWriter.length)
 }
 
-// responseLogger implements http.ResponseWriter, keeps log of status code and content length
+// responseLogger is a http.ResponseWriter it keeps status code and content length
 type responseLogger struct {
 	responseWriter http.ResponseWriter
 	status         int
