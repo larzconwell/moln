@@ -1,76 +1,70 @@
-If status code is not 2xx then the following is the returned body
+When doing POST/PATCH operations if validations fail a 400 is returned with the following body
+  {errors: [<message>, ...]}
+
+If the status code is not 2xx and there were no validation errors then the following is the
+returned body
   {error: <message>}
 
-Routes:
-  /users
-    POST /
-      data: username, password, deviceName
-      return: {user: <user>}
-      msg: Creates a user if available, an initial device is created so a token is available
-      url: /users/
-    /<username>
-      GET /
-        data: token
-        return: {user: <user>}
-        msg: Get a user, if token is not the <username>s, then the users devices token
-          fields are null
-        url: /users/<username>/
-      DELETE /
-        data: token
-        return: {user: <user>}
-        msg: Delete a user
-        url: /users/<username>/
-      PATCH /
-        data: token, <user>
-        return: {old: <user>, new: <user>}
-        msg: Update a users fields, device names can be changed, but token changes are ignored.
-          New devices are ignored as well.
-        url: /users/<username>/
-      /devices
-        GET /
-          data: token
-          return: {devices: [<device, ...>]}
-          msg: Return the users devices, if token is not <username>s, then the token fields
-            are null
-          url: /users/<username>/devices/
-        POST /
-          data: {token OR username, password}, name
-          return: {device: <device>}
-          msg: Create a new device for the user
-          url: /users/<username>/devices/
-        /<name>
-          GET /
-            data: token
-            return: {device: <device>}
-            msg: Return the users device, if token is not <username>s, then the token fields
-              are null
-            url: /users/<username>/devices/<name>/
-          DELETE /
-            data: token
-            return: {device: <device>}
-            msg: Delete a users device
-            url: /users/<username>/devices/<name>/
-          PATCH /
-            data: token, <device>
-            return: {old: <device>, new: <device>}
-            msg: Update a users device, token changes are ignored
-            url: /users/<username>/devices/<name>/
+Operations that have optional or required authorization may do so with one of the three ways:
+  1. A token field via URL query
+  2. A token in the Authorization header(e.g. "Authorization: token <token>")
+  3. A base64 encoded string in the format "<name>:<password>" in the Authorization header
+    (e.g. "Authorization: Basic <base64>")
+
+API:
+  POST /users:
+    Data: <name>, <password>, <devicename>
+    Return: {user: <user>}
+    Msg: Creates a user if name is available, a device is created to have an initial token
+  GET /users/{name}:
+    Auth: optional
+    Return: {user: <user>}
+    Msg: Get a user, if authorized and the user is the retrieved user the devices token
+      fields are included, otherwise empty
+  DELETE /users/{name}:
+    Auth: required
+    Return: {user: <user>}
+    Msg: Deletes the user, authorized user must be the user being deleted
+  PATCH /users/{name}:
+    Data: [password]
+    Auth: Required
+    Return: {user: <user>}
+    Msg: Update user data, authorized user must be the user being updated
+  GET /users/{name}/devices:
+    Auth: optional
+    Return: {devices: [<device>, ...]}
+    Msg: Return a users devices, if authorized and the user is the retrieved user the
+      devices token fields are included, otherwise empty
+  POST /users/{name}/devices:
+    Data: <name>
+    Auth: required
+    Return: {device: <device>}
+    Msg: Create a new device for the user, authorization must be for the user
+  GET /users/{username}/devices/{name}:
+    Auth: optional
+    Return: {device: <device>}
+    Msg: Get a users device, if authorized and the user is the retrieved user the
+      device token field is included, otherwise empty
+  DELETE /users/{username}/devices/{name}:
+    Auth: required
+    Return: {device: <device>}
+    Msg: Delete a users device, authorization must be for the user
+  PATCH /users/{username}/devices/{name}:
+    Data: <name>
+    Auth: required
+    Return: {device: <device>}
+    Msg: Update a users device data, authorization must be for the user
 
 Response Data:
-  user:
-    {username: '', devices: [<device, ...>]}
-  device:
-    {name: '', token: ''}
+  user: {name: '', devices: [<device>, ...]}
+  device: {name: '', token: ''}
 
 Backend Data:
-  User:
-    // User details hash
-    "user:<username>" -> username <username> password <password>
-    // Users devices set
-    "user:<username>:devices" -> [name, ...]
-  Device:
-    // Device details hash
-    "device:<name>" -> name <name> token <token> user <username>
-  Token:
-    // Token details hash
-    "token:<token>" -> device <name> user <username>
+  "user:<name>" -> name <name> password <password>
+    Hash of users data
+  "user:<name>:devices" -> [<name>, ...]
+    Set of users device names
+  "user:<name>:device:<name>" -> name <name> token <token> user <name>
+    Hash of a users device data
+  "token:<token>" -> device <name> user <name>
+    Hash of a tokens device name and user name
