@@ -1,15 +1,16 @@
 When doing POST/PATCH operations if validations fail a 400 is returned with the following body
-  {errors: [<message>, ...]}
+  {errors: ['', ...]}
+Note: This does not mean that all 400 responses are validation errors
 
-If the status code is not 2xx and there were no validation errors then the following is the
-returned body
-  {error: <message>}
+If the status code is not 2xx, there were no validation errors, and it's not a redirect then the
+following is the returned body
+  {error: ''}
 
 Operations that have optional or required authorization may do so with one of the three ways:
   1. A token field via URL query
   2. A token in the Authorization header(e.g. "Authorization: token <token>")
   3. A base64 encoded string in the format "<name>:<password>" in the Authorization header
-    (e.g. "Authorization: Basic <base64>")
+    (e.g. "Authorization: basic <base64>")
 
 API:
   POST /users:

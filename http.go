@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,9 +15,66 @@ type TLS struct {
 	Key  string
 }
 
+// Response is a map of key values to send as a JSON response
+type Response map[string]interface{}
+
+// Send parses the response and if parsed successfully responsed with give status code otherwise
+// 500, and a parse error message
+func (res Response) Send(rw http.ResponseWriter, status int) {
+	rw.Header().Set("Content-Type", "application/json")
+
+	if status <= 0 {
+		status = http.StatusOK
+	}
+
+	contents, err := json.Marshal(res)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(rw, "{\"error\": \""+err.Error()+"\"}")
+		return
+	}
+
+	rw.WriteHeader(status)
+	fmt.Fprint(rw, string(contents))
+}
+
+// responseLogger is a http.ResponseWriter it keeps status code and content length
+type responseLogger struct {
+	responseWriter http.ResponseWriter
+	status         int
+	length         int
+}
+
+func (rl *responseLogger) Header() http.Header {
+	return rl.responseWriter.Header()
+}
+
+// Write calls the responseWriters write, and keeps track of the content length
+func (rl *responseLogger) Write(b []byte) (int, error) {
+	if rl.status == 0 {
+		// The status will be StatusOk if WriteHeader has not been called
+		rl.status = http.StatusOK
+	}
+
+	size, err := rl.responseWriter.Write(b)
+	rl.length += size
+	return size, err
+}
+
+// WriteHeader sets the status code, and writes the header to the set reponseWriter
+func (rl *responseLogger) WriteHeader(status int) {
+	rl.responseWriter.WriteHeader(status)
+	rl.status = status
+}
+
+/*
+ * Handlers
+ */
+
 // NotFoundHandler is a simple 404 http.HandlerFunc
 func NotFoundHandler(rw http.ResponseWriter, req *http.Request) {
-	ErrResponse(rw, http.StatusNotFound, nil)
+	res := Response{"error": http.StatusText(http.StatusNotFound)}
+	res.Send(rw, http.StatusNotFound)
 }
 
 // MethodHandler is a http.Handler to manage allowed methods to a resource
@@ -43,7 +101,8 @@ func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	rw.Header().Set("Allow", strings.Join(mh.Allowed, ", "))
-	ErrResponse(rw, http.StatusMethodNotAllowed, nil)
+	res := Response{"error": http.StatusText(http.StatusMethodNotAllowed)}
+	res.Send(rw, http.StatusMethodNotAllowed)
 }
 
 // LogHandler is a http.Handler that logs requests to the writer in Common Log Format
@@ -84,33 +143,4 @@ func (lh *LogHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		req.Proto,
 		loggedWriter.status,
 		loggedWriter.length)
-}
-
-// responseLogger is a http.ResponseWriter it keeps status code and content length
-type responseLogger struct {
-	responseWriter http.ResponseWriter
-	status         int
-	length         int
-}
-
-func (rl *responseLogger) Header() http.Header {
-	return rl.responseWriter.Header()
-}
-
-// Write calls the responseWriters write, and keeps track of the content length
-func (rl *responseLogger) Write(b []byte) (int, error) {
-	if rl.status == 0 {
-		// The status will be StatusOk if WriteHeader has not been called
-		rl.status = http.StatusOK
-	}
-
-	size, err := rl.responseWriter.Write(b)
-	rl.length += size
-	return size, err
-}
-
-// WriteHeader sets the status code, and writes the header to the set reponseWriter
-func (rl *responseLogger) WriteHeader(status int) {
-	rl.responseWriter.WriteHeader(status)
-	rl.status = status
 }
