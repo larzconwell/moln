@@ -61,11 +61,11 @@ Response Data:
   device: {name: '', token: ''}
 
 Backend Data:
-  "user:<name>" -> name <name> password <password>
+  "users:<name>" -> name <name> password <password>
     Hash of users data
-  "user:<name>:devices" -> [<name>, ...]
+  "users:<name>:devices" -> [<name>, ...]
     Set of users device names
-  "user:<name>:device:<name>" -> name <name> token <token> user <name>
+  "users:<name>:device:<name>" -> name <name> token <token> user <name>
     Hash of a users device data
   "token:<token>" -> device <name> user <name>
     Hash of a tokens device name and user name

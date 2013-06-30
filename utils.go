@@ -15,10 +15,13 @@ var (
 	// Authentication errors
 	ErrTokenNotExist           = errors.New("Authentication: token does not exist")
 	ErrNoAuthorizationValue    = errors.New("Authentication: authorization header value missing")
-	ErrNoAuthorizationPassword = errors.New("Authentication: authorization password missing")
+	ErrNoAuthorizationPassword = errors.New("Authentication: authorization header password missing")
+
+	// Authorization errors
+	ErrUserNotAuthorized = errors.New("Authorization: user is not authorized to access this page")
 
 	// User errors
-	ErrUserNotExist = errors.New("User: user does not exist")
+  ErrUserNotExist = errors.New("User: user does not exist")
 
 	// Validation errors
 	ErrUserNameEmpty     = errors.New("User: name cannot be empty")
@@ -85,8 +88,8 @@ func CreateToken(user, device string) (string, error) {
 	return token.String(), nil
 }
 
-// Authenticate authenticates the request for a given queried user
-func Authenticate(req *http.Request, queriedUser string) (bool, error) {
+// Authenticate authenticates the request returning the authenticated users name
+func Authenticate(req *http.Request) (bool, string, error) {
 	authenticated := false
 
 	// Token from URL/Body query
@@ -104,7 +107,7 @@ func Authenticate(req *http.Request, queriedUser string) (bool, error) {
 		// ensure a value was given
 		if token == "" {
 			if len(authSplit) < 2 || authSplit[1] == "" {
-				return authenticated, ErrNoAuthorizationValue
+				return authenticated, "", ErrNoAuthorizationValue
 			}
 
 			authValue = authSplit[1]
@@ -122,42 +125,42 @@ func Authenticate(req *http.Request, queriedUser string) (bool, error) {
 		if err == redis.ErrNil {
 			err = ErrTokenNotExist
 		}
-		if user == queriedUser {
+		if err == nil {
 			authenticated = true
 		}
 
-		return authenticated, err
+		return authenticated, user, err
 	}
 
 	// Check for basic authorization based authentication
 	if authType == "basic" {
 		data, err := base64.StdEncoding.DecodeString(authValue)
 		if err != nil {
-			return authenticated, err
+			return authenticated, "", err
 		}
 		dataSplit := strings.SplitN(string(data), ":", 2)
 		user := dataSplit[0]
 
 		if len(dataSplit) < 2 || dataSplit[1] == "" {
-			return authenticated, ErrNoAuthorizationPassword
+			return authenticated, "", ErrNoAuthorizationPassword
 		}
 
-		pass, err := redis.String(DB.Do("hget", "user:"+user, "password"))
+		pass, err := redis.String(DB.Do("hget", "users:"+user, "password"))
 		if err == redis.ErrNil {
 			err = ErrUserNotExist
 		}
 		matches, err := MatchPass(pass, dataSplit[1])
 		if err != nil {
-			return authenticated, err
+			return authenticated, "", err
 		}
-		if matches && user == queriedUser {
+		if matches {
 			authenticated = true
 		}
 
-		return authenticated, err
+		return authenticated, user, err
 	}
 
-	return authenticated, nil
+	return authenticated, "", nil
 }
 
 // ToMap converts a redis multi-bulk reply to a map with key value strings
