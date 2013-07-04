@@ -134,12 +134,29 @@ func (lh *LogHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	// Filter out token and password queries
+	query := req.URL.Query()
+	for k, v := range query {
+		replace := ""
+
+		if k == "password" || k == "token" {
+			replace = k
+		}
+
+		if replace != "" {
+			for idx := range v {
+				v[idx] = "[" + k + "]"
+			}
+		}
+	}
+	req.URL.RawQuery = query.Encode()
+
 	fmt.Fprintf(lh.writer, "%s %s - [%s] \"%s %s %s\" %d %d\n",
 		req.RemoteAddr,
 		username,
 		accessTime.Format("02/Jan/2006:15:04:05 -0700"),
 		req.Method,
-		req.RequestURI,
+		req.URL.String(),
 		req.Proto,
 		loggedWriter.status,
 		loggedWriter.length)

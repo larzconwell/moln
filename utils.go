@@ -21,7 +21,7 @@ var (
 	ErrUserNotAuthorized = errors.New("Authorization: user is not authorized to access this page")
 
 	// User errors
-  ErrUserNotExist = errors.New("User: user does not exist")
+	ErrUserNotExist = errors.New("User: user does not exist")
 
 	// Validation errors
 	ErrUserNameEmpty     = errors.New("User: name cannot be empty")
