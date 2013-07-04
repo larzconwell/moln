@@ -50,7 +50,7 @@ func main() {
 	for name, r := range Routes {
 		route := router.NewRoute()
 		route.Name(name).Path(r.Path).Methods(r.Methods...)
-		route.Handler(NewMethodHandler(r.Methods, http.HandlerFunc(r.Handler)))
+		route.Handler(NewMethodHandler(r.Methods, NewContentTypeHandler(http.HandlerFunc(r.Handler))))
 	}
 
 	server := &http.Server{

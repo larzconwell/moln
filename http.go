@@ -9,29 +9,47 @@ import (
 	"time"
 )
 
+// ContentTypes is a map of types and their parse error content
+var ContentTypes = map[string]string{
+	"application/json": "{\"error\": \"{{message}}\"}",
+}
+
 // TLS represents the cert and key files for TLS connections
 type TLS struct {
 	Cert string
 	Key  string
 }
 
-// Response is a map of key values to send as a JSON response
+// Response is a map of key values to send as the requests Content-Type
 type Response map[string]interface{}
 
-// Send parses the response and if parsed successfully responsed with give status code otherwise
-// 500, and a parse error message
-func (res Response) Send(rw http.ResponseWriter, status int) {
-	rw.Header().Set("Content-Type", "application/json")
+// Send parses the response and if parsed successfully responds with the given status code,
+// otherwise a 500 and an error message is returned
+func (res Response) Send(rw http.ResponseWriter, req *http.Request, status int) {
+	var (
+		contents []byte
+		err      error
+	)
+	reqCt := req.Header.Get("Content-Type")
+	rwHeader := rw.Header()
+
+	if reqCt == "" {
+		reqCt = "application/json"
+	}
+	rwHeader.Set("Content-Type", reqCt)
 
 	if status <= 0 {
 		status = http.StatusOK
 	}
 
-	contents, err := json.Marshal(res)
+	switch reqCt {
+	case "application/json":
+		contents, err = json.Marshal(res)
+	}
+
 	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(rw, "{\"error\": \""+err.Error()+"\"}")
-		return
+		status = http.StatusInternalServerError
+		contents = []byte(strings.Replace(ContentTypes[reqCt], "{{message}}", err.Error(), 1))
 	}
 
 	rw.WriteHeader(status)
@@ -74,7 +92,36 @@ func (rl *responseLogger) WriteHeader(status int) {
 // NotFoundHandler is a simple 404 http.HandlerFunc
 func NotFoundHandler(rw http.ResponseWriter, req *http.Request) {
 	res := Response{"error": http.StatusText(http.StatusNotFound)}
-	res.Send(rw, http.StatusNotFound)
+	res.Send(rw, req, http.StatusNotFound)
+}
+
+// ContentTypeHandler is a http.HandlerFunc to ensure only valid content types are sent
+type ContentTypeHandler struct {
+	handler http.Handler
+}
+
+func NewContentTypeHandler(handler http.Handler) *ContentTypeHandler {
+	return &ContentTypeHandler{handler: handler}
+}
+
+// ServeHTTP only calls the handler if the request content type is supported or empty,
+// otherwise a 415 is returned with the supported types in the Accept header
+func (cth *ContentTypeHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	ct := req.Header.Get("Content-Type")
+	rwHeader := rw.Header()
+
+	if _, ok := ContentTypes[ct]; ct == "" || ok {
+		cth.handler.ServeHTTP(rw, req)
+		return
+	}
+
+	rwHeader.Set("Content-Type", "application/json")
+	for t := range ContentTypes {
+		rwHeader.Add("Accept", t)
+	}
+
+	rw.WriteHeader(http.StatusUnsupportedMediaType)
+	fmt.Fprint(rw, "{\"error\": \""+http.StatusText(http.StatusUnsupportedMediaType)+"\"}")
 }
 
 // MethodHandler is a http.Handler to manage allowed methods to a resource
@@ -83,14 +130,14 @@ type MethodHandler struct {
 	handler http.Handler
 }
 
-func NewMethodHandler(allowed []string, handler http.Handler) http.Handler {
+func NewMethodHandler(allowed []string, handler http.Handler) *MethodHandler {
 	return &MethodHandler{
 		Allowed: allowed,
 		handler: handler,
 	}
 }
 
-// ServeHTTP Only calls the handler if the request method is allowed, otherwise a 405
+// ServeHTTP only calls the handler if the request method is allowed, otherwise a 405
 // response is sent
 func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	for _, method := range mh.Allowed {
@@ -102,7 +149,7 @@ func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Allow", strings.Join(mh.Allowed, ", "))
 	res := Response{"error": http.StatusText(http.StatusMethodNotAllowed)}
-	res.Send(rw, http.StatusMethodNotAllowed)
+	res.Send(rw, req, http.StatusMethodNotAllowed)
 }
 
 // LogHandler is a http.Handler that logs requests to the writer in Common Log Format
@@ -111,7 +158,7 @@ type LogHandler struct {
 	handler http.Handler
 }
 
-func NewLogHandler(writer io.Writer, handler http.Handler) http.Handler {
+func NewLogHandler(writer io.Writer, handler http.Handler) *LogHandler {
 	return &LogHandler{
 		writer:  writer,
 		handler: handler,

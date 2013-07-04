@@ -16,7 +16,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		res := Response{"error": err.Error()}
-		res.Send(rw, http.StatusBadRequest)
+		res.Send(rw, req, http.StatusBadRequest)
 		return
 	}
 	params := req.PostForm
@@ -64,7 +64,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 			res["errors"] = errs
 		}
 
-		res.Send(rw, status)
+		res.Send(rw, req, status)
 		return
 	}
 
@@ -72,7 +72,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	password, err := HashPass(plainPass)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -80,7 +80,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	_, err = DB.Do("hmset", "users:"+name, "name", name, "password", string(password))
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -88,7 +88,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	token, err := CreateToken(name, deviceName)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -97,7 +97,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		"token", token, "user", name)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -105,7 +105,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	_, err = DB.Do("hmset", "token:"+token, "device", deviceName, "user", name)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -113,7 +113,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	_, err = DB.Do("sadd", "users:"+name+":devices", deviceName)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -121,7 +121,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		"name":    name,
 		"devices": []map[string]string{map[string]string{"name": deviceName, "token": token}},
 	}
-	res.Send(rw, 0)
+	res.Send(rw, req, 0)
 }
 
 func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
@@ -139,12 +139,12 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	exists, err := redis.Bool(DB.Do("exists", "users:"+name))
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 	if !exists {
 		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 
@@ -152,7 +152,7 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 	devices := make([]map[string]string, len(deviceNames))
@@ -162,7 +162,7 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+string(d)))
 		if err != nil {
 			res["error"] = err.Error()
-			res.Send(rw, http.StatusInternalServerError)
+			res.Send(rw, req, http.StatusInternalServerError)
 			return
 		}
 
@@ -177,7 +177,7 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	res["user"] = map[string]interface{}{"name": name, "devices": devices}
-	res.Send(rw, 0)
+	res.Send(rw, req, 0)
 }
 
 func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
@@ -188,18 +188,18 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 	if authenticated && currentUser != name {
 		res["error"] = ErrUserNotAuthorized.Error()
-		res.Send(rw, http.StatusForbidden)
+		res.Send(rw, req, http.StatusForbidden)
 		return
 	}
 	if !authenticated {
 		rw.Header().Set("WWW-Authenticate", "Token")
 		res["error"] = http.StatusText(http.StatusUnauthorized)
-		res.Send(rw, http.StatusUnauthorized)
+		res.Send(rw, req, http.StatusUnauthorized)
 		return
 	}
 
@@ -207,12 +207,12 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	exists, err := redis.Bool(DB.Do("exists", "users:"+name))
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 	if !exists {
 		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 
@@ -220,7 +220,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 	devices := make([]map[string]string, len(deviceNames))
@@ -232,7 +232,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+ds))
 		if err != nil {
 			res["error"] = err.Error()
-			res.Send(rw, http.StatusInternalServerError)
+			res.Send(rw, req, http.StatusInternalServerError)
 			return
 		}
 
@@ -243,7 +243,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		_, err = DB.Do("del", "users:"+name+":device:"+ds)
 		if err != nil {
 			res["error"] = err.Error()
-			res.Send(rw, http.StatusInternalServerError)
+			res.Send(rw, req, http.StatusInternalServerError)
 			return
 		}
 
@@ -251,7 +251,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		_, err = DB.Do("del", "token:"+device["token"])
 		if err != nil {
 			res["error"] = err.Error()
-			res.Send(rw, http.StatusInternalServerError)
+			res.Send(rw, req, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -260,7 +260,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	_, err = DB.Do("del", "users:"+name+":devices")
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -268,10 +268,10 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	_, err = DB.Do("del", "users:"+name)
 	if err != nil {
 		res["error"] = err.Error()
-		res.Send(rw, http.StatusInternalServerError)
+		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
 	res["user"] = map[string]interface{}{"name": name, "devices": devices}
-	res.Send(rw, 0)
+	res.Send(rw, req, 0)
 }

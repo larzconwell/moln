@@ -6,6 +6,11 @@ If the status code is not 2xx, there were no validation errors, and it's not a r
 following is the returned body
   {error: ''}
 
+Responses can be in the formats csv, xml and json. To get the desired format send the request
+including the appropriate Content-Type header. If the requests Content-Type is not supported
+a 415 is returned with an error message and includes an Accept header listing the supported types.
+If no Content-Type is given json will be the default.
+
 Operations that have optional or required authorization may do so with one of the three ways:
   1. A token field via URL query
   2. A token in the Authorization header(e.g. "Authorization: token <token>")
