@@ -3,31 +3,11 @@ package main
 import (
 	"code.google.com/p/go.crypto/bcrypt"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/nu7hatch/gouuid"
 	"net/http"
 	"strings"
-)
-
-var (
-	// Authentication errors
-	ErrTokenNotExist           = errors.New("Authentication: token does not exist")
-	ErrNoAuthorizationValue    = errors.New("Authentication: authorization header value missing")
-	ErrNoAuthorizationPassword = errors.New("Authentication: authorization header password missing")
-
-	// Authorization errors
-	ErrUserNotAuthorized = errors.New("Authorization: user is not authorized to access this page")
-
-	// User errors
-	ErrUserNotExist = errors.New("User: user does not exist")
-
-	// Validation errors
-	ErrUserNameEmpty     = errors.New("User: name cannot be empty")
-	ErrUserPasswordEmpty = errors.New("User: password cannot be empty")
-	ErrDeviceNameEmpty   = errors.New("Device: name cannot be empty")
-	ErrUserAlreadyExists = errors.New("User: name already exists")
 )
 
 // createAndAppendErrorMsgs creates the given list if nil then appends the items to it
