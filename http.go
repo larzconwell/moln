@@ -11,7 +11,9 @@ import (
 
 // ContentTypes is a map of types and their parse error content
 var ContentTypes = map[string]string{
-	"application/json": "{\"error\": \"{{message}}\"}",
+	"application/json":                  "{\"error\": \"{{message}}\"}",
+	"application/x-www-form-urlencoded": "",
+	"multipart/form-data":               "",
 }
 
 // TLS represents the cert and key files for TLS connections

@@ -10,12 +10,14 @@ func init() {
 	Routes["Users.New"] = &Route{Methods: []string{"POST"}, Path: "/users", Handler: CreateUserHandler}
 	Routes["Users.Show"] = &Route{Methods: []string{"GET"}, Path: "/users/{name}", Handler: ShowUserHandler}
 	Routes["Users.Delete"] = &Route{Methods: []string{"DELETE"}, Path: "/users/{name}", Handler: DeleteUserHandler}
+	Routes["Users.Update"] = &Route{Methods: []string{"PUT"}, Path: "/users/{name}", Handler: UpdateUserHandler}
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
+	res := Response{}
 	err := req.ParseForm()
 	if err != nil {
-		res := Response{"error": err.Error()}
+		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusBadRequest)
 		return
 	}
@@ -23,7 +25,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	name := params.Get("name")
 	plainPass := params.Get("password")
 	deviceName := params.Get("devicename")
-	res := Response{}
+	req.Header.Set("Content-Type", "")
 
 	// Ensure data is valid
 	errs, err := Validate(func() (error, error) {
@@ -185,6 +187,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	name := vars["name"]
 	res := Response{}
 
+	// Authenticate the request, ensure the authenticated user is the correct user
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
 		res["error"] = err.Error()
@@ -270,6 +273,118 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
+	}
+
+	res["user"] = map[string]interface{}{"name": name, "devices": devices}
+	res.Send(rw, req, 0)
+}
+
+func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
+	res := Response{}
+	err := req.ParseForm()
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusBadRequest)
+		return
+	}
+	params := req.PostForm
+	plainPass := params.Get("password")
+	req.Header.Set("Content-Type", "")
+	vars := mux.Vars(req)
+	name := vars["name"]
+
+	// Authenticate the request, ensure the authenticated user is the correct user
+	authenticated, currentUser, err := Authenticate(req)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if authenticated && currentUser != name {
+		res["error"] = ErrUserNotAuthorized.Error()
+		res.Send(rw, req, http.StatusForbidden)
+		return
+	}
+	if !authenticated {
+		rw.Header().Set("WWW-Authenticate", "Token")
+		res["error"] = http.StatusText(http.StatusUnauthorized)
+		res.Send(rw, req, http.StatusUnauthorized)
+		return
+	}
+
+	// Ensure user exists
+	exists, err := redis.Bool(DB.Do("exists", "users:"+name))
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
+	// Ensure data is valid
+	errs, err := Validate(func() (error, error) {
+		if plainPass == "" {
+			return ErrUserPasswordEmpty, nil
+		}
+
+		return nil, nil
+	})
+	if errs != nil || err != nil {
+		status := http.StatusBadRequest
+
+		if err != nil {
+			res["error"] = err.Error()
+			status = http.StatusInternalServerError
+		}
+
+		if errs != nil {
+			res["errors"] = errs
+		}
+
+		res.Send(rw, req, status)
+		return
+	}
+
+	// Generate password
+	password, err := HashPass(plainPass)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	// Set password
+	_, err = DB.Do("hset", "users:"+name, "password", string(password))
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	// Get users device names
+	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	devices := make([]map[string]string, len(deviceNames))
+
+	// Get the users devices
+	for i, d := range deviceNames {
+		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+string(d)))
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
+
+		delete(device, "user")
+		devices[i] = device
 	}
 
 	res["user"] = map[string]interface{}{"name": name, "devices": devices}
