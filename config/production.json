@@ -1,5 +1,4 @@
 {
   "RedisAddr": "/tmp/redis.sock",
-  "RedisNetwork": "unix",
-  "ServerAddr": ":80"
+  "RedisNetwork": "unix"
 }
