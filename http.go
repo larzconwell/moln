@@ -126,34 +126,6 @@ func (cth *ContentTypeHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 	fmt.Fprint(rw, "{\"error\": \""+http.StatusText(http.StatusUnsupportedMediaType)+"\"}")
 }
 
-// MethodHandler is a http.Handler to manage allowed methods to a resource
-type MethodHandler struct {
-	Allowed []string
-	handler http.Handler
-}
-
-func NewMethodHandler(allowed []string, handler http.Handler) *MethodHandler {
-	return &MethodHandler{
-		Allowed: allowed,
-		handler: handler,
-	}
-}
-
-// ServeHTTP only calls the handler if the request method is allowed, otherwise a 405
-// response is sent
-func (mh *MethodHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	for _, method := range mh.Allowed {
-		if req.Method == method {
-			mh.handler.ServeHTTP(rw, req)
-			return
-		}
-	}
-
-	rw.Header().Set("Allow", strings.Join(mh.Allowed, ", "))
-	res := Response{"error": http.StatusText(http.StatusMethodNotAllowed)}
-	res.Send(rw, req, http.StatusMethodNotAllowed)
-}
-
 // LogHandler is a http.Handler that logs requests to the writer in Common Log Format
 type LogHandler struct {
 	writer  io.Writer
