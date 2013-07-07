@@ -64,13 +64,3 @@ API:
 Response Data:
   user: {name: '', devices: [<device>, ...]}
   device: {name: '', tokens: ''}
-
-Backend Data:
-  "users:<name>" -> name <name> password <password>
-    Hash of users data
-  "users:<name>:devices" -> [<name>, ...]
-    Set of users device names
-  "users:<name>:device:<name>" -> name <name> token <token> user <name>
-    Hash of a users device data
-  "tokens:<token>" -> device <name> user <name>
-    Hash of a tokens device name and user name

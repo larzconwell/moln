@@ -5,49 +5,49 @@ import (
 )
 
 // UserExists checks if a user exists in the DB
-func UserExists(name string) (bool, error) {
-	return redis.Bool(DB.Do("exists", "users:"+name))
+func UserExists(user string) (bool, error) {
+	return redis.Bool(DB.Do("exists", "users:"+user))
 }
 
 // CreateUser creates a user in the DB
-func CreateUser(name, password string) error {
-	_, err := DB.Do("hmset", "users:"+name, "name", name, "password", string(password))
+func CreateUser(user, password string) error {
+	_, err := DB.Do("hmset", "users:"+user, "name", user, "password", password)
 	return err
 }
 
 // CreateDevice creates a device in the DB
-func CreateDevice(user, name, token string) error {
-	_, err := DB.Do("hmset", "users:"+user+":device:"+name, "name", name, "token",
+func CreateDevice(user, device, token string) error {
+	_, err := DB.Do("hmset", "users:"+user+":devices:"+device, "name", device, "token",
 		token, "user", user)
 	return err
 }
 
 // CreateToken creates a token in the DB
-func CreateToken(user, device, value string) error {
-	_, err := DB.Do("hmset", "tokens:"+value, "device", device, "user", user)
+func CreateToken(user, device, token string) error {
+	_, err := DB.Do("hmset", "tokens:"+token, "device", device, "user", user)
 	return err
 }
 
 // AddDeviceToUser adds a device to the users devices
-func AddDeviceToUser(name, device string) error {
-	_, err := DB.Do("sadd", "users:"+name+":devices", device)
+func AddDeviceToUser(user, device string) error {
+	_, err := DB.Do("sadd", "users:"+user+":devices", device)
 	return err
 }
 
 // GetUser retrieves a user from the DB
-func GetUser(name string) (map[string]string, error) {
-	user, err := ToMap(DB.Do("hgetall", "users:"+name))
+func GetUser(user string) (map[string]string, error) {
+	u, err := ToMap(DB.Do("hgetall", "users:"+user))
 	if err == redis.ErrNil {
 		err = ErrUserNotExist
 	}
 
-	return user, err
+	return u, err
 }
 
 // GetUserDevices gets a users devices from the DB
-func GetUserDevices(name string, iterator func(map[string]string) error) ([]map[string]string, error) {
+func GetUserDevices(user string, iterator func(map[string]string) error) ([]map[string]string, error) {
 	// Get users device names
-	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
+	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+user+":devices"))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func GetUserDevices(name string, iterator func(map[string]string) error) ([]map[
 	for i, d := range deviceNames {
 		ds := string(d)
 
-		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+ds))
+		device, err := ToMap(DB.Do("hgetall", "users:"+user+":devices:"+ds))
 		if err != nil {
 			return nil, err
 		}
@@ -77,41 +77,41 @@ func GetUserDevices(name string, iterator func(map[string]string) error) ([]map[
 }
 
 // GetToken retrieves a token from the DB
-func GetToken(value string) (map[string]string, error) {
-	token, err := ToMap(DB.Do("hgetall", "tokens:"+value))
+func GetToken(token string) (map[string]string, error) {
+	t, err := ToMap(DB.Do("hgetall", "tokens:"+token))
 	if err == redis.ErrNil {
 		err = ErrTokenNotExist
 	}
 
-	return token, err
+	return t, err
 }
 
 // UpdateUser updates the users data
-func UpdateUser(name string, attributes ...string) error {
-	_, err := DB.Do("hmset", redis.Args{}.Add("users:"+name).AddFlat(attributes))
+func UpdateUser(user string, attributes ...string) error {
+	_, err := DB.Do("hmset", redis.Args{}.Add("users:"+user).AddFlat(attributes)...)
 	return err
 }
 
 // DeleteUser deletes the user
-func DeleteUser(name string) error {
-	_, err := DB.Do("del", "users:"+name)
+func DeleteUser(user string) error {
+	_, err := DB.Do("del", "users:"+user)
 	return err
 }
 
 // DeleteUserDevices deletes the users device set
-func DeleteUserDevices(name string) error {
-	_, err := DB.Do("del", "users:"+name+":devices")
+func DeleteUserDevices(user string) error {
+	_, err := DB.Do("del", "users:"+user+":devices")
 	return err
 }
 
 // DeleteDevice deletes a device from the DB
-func DeleteDevice(user, name string) error {
-	_, err := DB.Do("del", "users:"+user+":device:"+name)
+func DeleteDevice(user, device string) error {
+	_, err := DB.Do("del", "users:"+user+":devices:"+device)
 	return err
 }
 
 // DeleteToken deletes a token from the DB
-func DeleteToken(value string) error {
-	_, err := DB.Do("del", "tokens:"+value)
+func DeleteToken(token string) error {
+	_, err := DB.Do("del", "tokens:"+token)
 	return err
 }
