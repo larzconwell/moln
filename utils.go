@@ -7,6 +7,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/nu7hatch/gouuid"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -58,8 +59,8 @@ func MatchPass(hashPass, plainPass string) (bool, error) {
 	return match, err
 }
 
-// CreateToken creates a unique token from a user name and device name
-func CreateToken(user, device string) (string, error) {
+// GenerateToken creates a unique token from a user name and device name
+func GenerateToken(user, device string) (string, error) {
 	token, err := uuid.NewV5(uuid.NamespaceURL, []byte(user+device))
 	if err != nil {
 		return "", err
@@ -101,15 +102,12 @@ func Authenticate(req *http.Request) (bool, string, error) {
 
 	// Check for token based authentication
 	if token != "" {
-		user, err := redis.String(DB.Do("hget", "token:"+token, "user"))
-		if err == redis.ErrNil {
-			err = ErrTokenNotExist
-		}
+		token, err := GetToken(token)
 		if err == nil {
 			authenticated = true
 		}
 
-		return authenticated, user, err
+		return authenticated, token["user"], err
 	}
 
 	// Check for basic authorization based authentication
@@ -119,17 +117,17 @@ func Authenticate(req *http.Request) (bool, string, error) {
 			return authenticated, "", err
 		}
 		dataSplit := strings.SplitN(string(data), ":", 2)
-		user := dataSplit[0]
+		name := dataSplit[0]
 
 		if len(dataSplit) < 2 || dataSplit[1] == "" {
 			return authenticated, "", ErrNoAuthorizationPassword
 		}
 
-		pass, err := redis.String(DB.Do("hget", "users:"+user, "password"))
-		if err == redis.ErrNil {
-			err = ErrUserNotExist
+		user, err := GetUser(name)
+		if err != nil {
+			return authenticated, "", err
 		}
-		matches, err := MatchPass(pass, dataSplit[1])
+		matches, err := MatchPass(user["password"], dataSplit[1])
 		if err != nil {
 			return authenticated, "", err
 		}
@@ -137,7 +135,7 @@ func Authenticate(req *http.Request) (bool, string, error) {
 			authenticated = true
 		}
 
-		return authenticated, user, err
+		return authenticated, name, err
 	}
 
 	return authenticated, "", nil
@@ -183,4 +181,15 @@ func ToMap(reply interface{}, err error) (map[string]string, error) {
 	}
 
 	return nil, fmt.Errorf("ToMap: unexpected type %T", reply)
+}
+
+// ParseForm parse the request form handling errors
+func ParseForm(rw http.ResponseWriter, req *http.Request, res Response) (url.Values, bool) {
+	err := req.ParseForm()
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusBadRequest)
+		return nil, false
+	}
+	return req.PostForm, true
 }

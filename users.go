@@ -1,27 +1,23 @@
 package main
 
 import (
-	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
 func init() {
-	Routes["Users.New"] = &Route{Methods: []string{"POST"}, Path: "/users", Handler: CreateUserHandler}
-	Routes["Users.Show"] = &Route{Methods: []string{"GET"}, Path: "/users/{name}", Handler: ShowUserHandler}
-	Routes["Users.Delete"] = &Route{Methods: []string{"DELETE"}, Path: "/users/{name}", Handler: DeleteUserHandler}
-	Routes["Users.Update"] = &Route{Methods: []string{"PUT"}, Path: "/users/{name}", Handler: UpdateUserHandler}
+	Routes["Users.New"] = &Route{[]string{"POST"}, "/users", CreateUserHandler}
+	Routes["Users.Show"] = &Route{[]string{"GET"}, "/users/{name}", ShowUserHandler}
+	Routes["Users.Delete"] = &Route{[]string{"DELETE"}, "/users/{name}", DeleteUserHandler}
+	Routes["Users.Update"] = &Route{[]string{"PUT"}, "/users/{name}", UpdateUserHandler}
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	res := Response{}
-	err := req.ParseForm()
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusBadRequest)
+	params, ok := ParseForm(rw, req, res)
+	if !ok {
 		return
 	}
-	params := req.PostForm
 	name := params.Get("name")
 	plainPass := params.Get("password")
 	deviceName := params.Get("devicename")
@@ -47,7 +43,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 
 		return nil, nil
 	}, func() (error, error) {
-		exists, err := redis.Bool(DB.Do("exists", "users:"+name))
+		exists, err := UserExists(name)
 		if exists {
 			return ErrUserAlreadyExists, err
 		}
@@ -78,8 +74,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Create user
-	_, err = DB.Do("hmset", "users:"+name, "name", name, "password", string(password))
+	err = CreateUser(name, string(password))
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
@@ -87,32 +82,28 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Create token for device and token
-	token, err := CreateToken(name, deviceName)
+	token, err := GenerateToken(name, deviceName)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
-	// Create device
-	_, err = DB.Do("hmset", "users:"+name+":device:"+deviceName, "name", deviceName,
-		"token", token, "user", name)
+	err = CreateDevice(name, deviceName, token)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
-	// Create token
-	_, err = DB.Do("hmset", "token:"+token, "device", deviceName, "user", name)
+	err = CreateToken(name, deviceName, token)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
-	// Add device name to user devices
-	_, err = DB.Do("sadd", "users:"+name+":devices", deviceName)
+	err = AddDeviceToUser(name, deviceName)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
@@ -138,7 +129,7 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Ensure user exists
-	exists, err := redis.Bool(DB.Do("exists", "users:"+name))
+	exists, err := UserExists(name)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
@@ -150,26 +141,11 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Get users device names
-	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
+	devices, err := GetUserDevices(name, nil)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
-	}
-	devices := make([]map[string]string, len(deviceNames))
-
-	// Get the users devices
-	for i, d := range deviceNames {
-		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+string(d)))
-		if err != nil {
-			res["error"] = err.Error()
-			res.Send(rw, req, http.StatusInternalServerError)
-			return
-		}
-
-		delete(device, "user")
-		devices[i] = device
 	}
 
 	for _, v := range devices {
@@ -207,7 +183,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Ensure user exists
-	exists, err := redis.Bool(DB.Do("exists", "users:"+name))
+	exists, err := UserExists(name)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
@@ -219,56 +195,32 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Get users device names
-	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-	devices := make([]map[string]string, len(deviceNames))
-
-	// Get the users devices
-	for i, d := range deviceNames {
-		ds := string(d)
-
-		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+ds))
+	// Delete the device and the devices token
+	iterator := func(device map[string]string) error {
+		err = DeleteDevice(name, device["name"])
 		if err != nil {
-			res["error"] = err.Error()
-			res.Send(rw, req, http.StatusInternalServerError)
-			return
+			return err
 		}
 
-		delete(device, "user")
-		devices[i] = device
-
-		// Delete the device
-		_, err = DB.Do("del", "users:"+name+":device:"+ds)
-		if err != nil {
-			res["error"] = err.Error()
-			res.Send(rw, req, http.StatusInternalServerError)
-			return
-		}
-
-		// Delete the devices token
-		_, err = DB.Do("del", "token:"+device["token"])
-		if err != nil {
-			res["error"] = err.Error()
-			res.Send(rw, req, http.StatusInternalServerError)
-			return
-		}
+		err = DeleteToken(device["token"])
+		return err
 	}
 
-	// Delete the users devices
-	_, err = DB.Do("del", "users:"+name+":devices")
+	devices, err := GetUserDevices(name, iterator)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
-	// Delete the user
-	_, err = DB.Do("del", "users:"+name)
+	err = DeleteUserDevices(name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	err = DeleteUser(name)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
@@ -281,13 +233,10 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 
 func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	res := Response{}
-	err := req.ParseForm()
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusBadRequest)
+	params, ok := ParseForm(rw, req, res)
+	if !ok {
 		return
 	}
-	params := req.PostForm
 	plainPass := params.Get("password")
 	req.Header.Set("Content-Type", "")
 	vars := mux.Vars(req)
@@ -313,7 +262,7 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Ensure user exists
-	exists, err := redis.Bool(DB.Do("exists", "users:"+name))
+	exists, err := UserExists(name)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
@@ -357,34 +306,18 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Set password
-	_, err = DB.Do("hset", "users:"+name, "password", string(password))
+	err = UpdateUser(name, "password", string(password))
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
 	}
 
-	// Get users device names
-	deviceNames, err := redis.Strings(DB.Do("smembers", "users:"+name+":devices"))
+	devices, err := GetUserDevices(name, nil)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
 		return
-	}
-	devices := make([]map[string]string, len(deviceNames))
-
-	// Get the users devices
-	for i, d := range deviceNames {
-		device, err := ToMap(DB.Do("hgetall", "users:"+name+":device:"+string(d)))
-		if err != nil {
-			res["error"] = err.Error()
-			res.Send(rw, req, http.StatusInternalServerError)
-			return
-		}
-
-		delete(device, "user")
-		devices[i] = device
 	}
 
 	res["user"] = map[string]interface{}{"name": name, "devices": devices}
