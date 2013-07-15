@@ -88,7 +88,11 @@ func GetToken(token string) (map[string]string, error) {
 
 // UpdateUser updates the users data
 func UpdateUser(user string, attributes ...string) error {
-	_, err := DB.Do("hmset", redis.Args{}.Add("users:"+user).AddFlat(attributes)...)
+	var err error
+
+	if len(attributes) > 0 {
+		_, err = DB.Do("hmset", redis.Args{}.Add("users:"+user).AddFlat(attributes)...)
+	}
 	return err
 }
 

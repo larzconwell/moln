@@ -285,7 +285,8 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 
 	// Ensure data is valid
 	errs, err := Validate(func() (error, error) {
-		if plainPass == "" {
+		_, ok := params["password"]
+		if ok && plainPass == "" {
 			return ErrUserPasswordEmpty, nil
 		}
 
@@ -307,15 +308,22 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Generate password
-	password, err := HashPass(plainPass)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
+	args := []string{}
+
+	_, ok = params["password"]
+	if ok {
+		// Generate password
+		password, err := HashPass(plainPass)
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
+
+		args = append(args, "password", string(password))
 	}
 
-	err = UpdateUser(name, "password", string(password))
+	err = UpdateUser(name, args...)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
