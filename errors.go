@@ -14,11 +14,11 @@ var (
 	ErrUserNotAuthorized = errors.New("Authorization: user is not authorized to access this page")
 
 	// User errors
-	ErrUserNotExist = errors.New("User: user does not exist")
-
-	// Validation errors
+	ErrUserNotExist      = errors.New("User: user does not exist")
 	ErrUserNameEmpty     = errors.New("User: name cannot be empty")
 	ErrUserPasswordEmpty = errors.New("User: password cannot be empty")
-	ErrDeviceNameEmpty   = errors.New("Device: name cannot be empty")
 	ErrUserAlreadyExists = errors.New("User: name already exists")
+
+	// Device errors
+	ErrDeviceNameEmpty = errors.New("Device: name cannot be empty")
 )

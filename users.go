@@ -22,6 +22,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	plainPass := params.Get("password")
 	deviceName := params.Get("devicename")
 	req.Header.Set("Content-Type", "")
+	token := ""
 
 	// Ensure data is valid
 	errs, err := Validate(func() (error, error) {
@@ -37,7 +38,8 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 
 		return nil, nil
 	}, func() (error, error) {
-		if deviceName == "" {
+		_, ok := params["devicename"]
+		if ok && deviceName == "" {
 			return ErrDeviceNameEmpty, nil
 		}
 
@@ -81,39 +83,46 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Create token for device and token
-	token, err := GenerateToken(name, deviceName)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
+	_, ok = params["devicename"]
+	if ok {
+		// Create token for device and token
+		token, err = GenerateToken(name, deviceName)
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
+
+		err = CreateDevice(name, deviceName, token)
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
+
+		err = CreateToken(name, deviceName, token)
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
+
+		err = AddDeviceToUser(name, deviceName)
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
 	}
 
-	err = CreateDevice(name, deviceName, token)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
+	res["user"] = map[string]interface{}{"name": name}
+	devices := []map[string]string{}
 
-	err = CreateToken(name, deviceName, token)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
+	if ok {
+		devices = append(devices, map[string]string{"name": deviceName, "token": token})
 	}
+	res["user"].(map[string]interface{})["devices"] = devices
 
-	err = AddDeviceToUser(name, deviceName)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-
-	res["user"] = map[string]interface{}{
-		"name":    name,
-		"devices": []map[string]string{map[string]string{"name": deviceName, "token": token}},
-	}
 	res.Send(rw, req, 0)
 }
 
