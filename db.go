@@ -76,6 +76,17 @@ func GetUserDevices(user string, iterator func(map[string]string) error) ([]map[
 	return devices, nil
 }
 
+// GetDevice retrieves a device from the DB
+func GetDevice(user, device string) (map[string]string, error) {
+	d, err := ToMap(DB.Do("hgetall", "users:"+user+":devices:"+device))
+	if err == redis.ErrNil {
+		err = ErrDeviceNotExist
+	}
+
+	delete(d, "user")
+	return d, err
+}
+
 // GetToken retrieves a token from the DB
 func GetToken(token string) (map[string]string, error) {
 	t, err := ToMap(DB.Do("hgetall", "tokens:"+token))
