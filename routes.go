@@ -5,12 +5,8 @@ import (
 )
 
 var (
-	Routes map[string]*Route
+	Routes map[string]*Route = map[string]*Route{}
 )
-
-func init() {
-	Routes = make(map[string]*Route)
-}
 
 // Route represents a single route, and the details for it
 type Route struct {
