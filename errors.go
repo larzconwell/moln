@@ -20,6 +20,7 @@ var (
 	ErrUserAlreadyExists = errors.New("User: name already exists")
 
 	// Device errors
-	ErrDeviceNotExist  = errors.New("Device: device does not exist")
-	ErrDeviceNameEmpty = errors.New("Device: name cannot be empty")
+	ErrDeviceNotExist      = errors.New("Device: device does not exist")
+	ErrDeviceNameEmpty     = errors.New("Device: name cannot be empty")
+	ErrDeviceAlreadyExists = errors.New("Device: name already exists")
 )

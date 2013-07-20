@@ -9,6 +9,11 @@ func UserExists(user string) (bool, error) {
 	return redis.Bool(DB.Do("exists", "users:"+user))
 }
 
+// DeviceExists checks if a device exists in the DB
+func DeviceExists(user, device string) (bool, error) {
+	return redis.Bool(DB.Do("exists", "users:"+user+":devices:"+device))
+}
+
 // CreateUser creates a user in the DB
 func CreateUser(user, password string) error {
 	_, err := DB.Do("hmset", "users:"+user, "name", user, "password", password)
