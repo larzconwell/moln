@@ -17,12 +17,6 @@ func ShowDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 	user := vars["user"]
 	res := Response{}
 
-	// Authentication is optional, so we can ignore errors
-	authenticated, currentUser, _ := Authenticate(req)
-	if currentUser != user {
-		authenticated = false
-	}
-
 	// Ensure user exists
 	exists, err := UserExists(user)
 	if err != nil {
@@ -34,6 +28,12 @@ func ShowDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 		res["error"] = http.StatusText(http.StatusNotFound)
 		res.Send(rw, req, http.StatusNotFound)
 		return
+	}
+
+	// Authentication is optional, so we can ignore errors
+	authenticated, currentUser, _ := Authenticate(req)
+	if currentUser != user {
+		authenticated = false
 	}
 
 	devices, err := GetUserDevices(user, nil)
@@ -64,6 +64,19 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	user := vars["user"]
 
+	// Ensure user exists
+	exists, err := UserExists(user)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
 	// Authenticate the request, ensure the authenticated user is the correct user
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
@@ -80,19 +93,6 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("WWW-Authenticate", "Token")
 		res["error"] = http.StatusText(http.StatusUnauthorized)
 		res.Send(rw, req, http.StatusUnauthorized)
-		return
-	}
-
-	// Ensure user exists
-	exists, err := UserExists(user)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-	if !exists {
-		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 
@@ -166,12 +166,6 @@ func ShowDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	name := vars["name"]
 	res := Response{}
 
-	// Authentication is optional, so we can ignore errors
-	authenticated, currentUser, _ := Authenticate(req)
-	if currentUser != user {
-		authenticated = false
-	}
-
 	// Ensure device exists
 	exists, err := DeviceExists(user, name)
 	if err != nil {
@@ -183,6 +177,12 @@ func ShowDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		res["error"] = http.StatusText(http.StatusNotFound)
 		res.Send(rw, req, http.StatusNotFound)
 		return
+	}
+
+	// Authentication is optional, so we can ignore errors
+	authenticated, currentUser, _ := Authenticate(req)
+	if currentUser != user {
+		authenticated = false
 	}
 
 	device, err := GetDevice(user, name)
@@ -206,6 +206,20 @@ func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	name := vars["name"]
 	res := Response{}
 
+	// Get device handling devices not found
+	device, err := GetDevice(user, name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	_, ok := device["name"]
+	if !ok {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
 	// Authenticate the request, ensure the authenticated user is the correct user
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
@@ -222,20 +236,6 @@ func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("WWW-Authenticate", "Token")
 		res["error"] = http.StatusText(http.StatusUnauthorized)
 		res.Send(rw, req, http.StatusUnauthorized)
-		return
-	}
-
-	// Get device handling devices not found
-	device, err := GetDevice(user, name)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-	_, ok := device["name"]
-	if !ok {
-		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 

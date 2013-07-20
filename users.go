@@ -131,12 +131,6 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	name := vars["name"]
 	res := Response{}
 
-	// Authentication is optional, so we can ignore errors
-	authenticated, currentUser, _ := Authenticate(req)
-	if currentUser != name {
-		authenticated = false
-	}
-
 	// Ensure user exists
 	exists, err := UserExists(name)
 	if err != nil {
@@ -148,6 +142,12 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 		res["error"] = http.StatusText(http.StatusNotFound)
 		res.Send(rw, req, http.StatusNotFound)
 		return
+	}
+
+	// Authentication is optional, so we can ignore errors
+	authenticated, currentUser, _ := Authenticate(req)
+	if currentUser != name {
+		authenticated = false
 	}
 
 	devices, err := GetUserDevices(name, nil)
@@ -172,6 +172,19 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	name := vars["name"]
 	res := Response{}
 
+	// Ensure user exists
+	exists, err := UserExists(name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
 	// Authenticate the request, ensure the authenticated user is the correct user
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
@@ -188,19 +201,6 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("WWW-Authenticate", "Token")
 		res["error"] = http.StatusText(http.StatusUnauthorized)
 		res.Send(rw, req, http.StatusUnauthorized)
-		return
-	}
-
-	// Ensure user exists
-	exists, err := UserExists(name)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-	if !exists {
-		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 
@@ -270,6 +270,19 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	name := vars["name"]
 
+	// Ensure user exists
+	exists, err := UserExists(name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
 	// Authenticate the request, ensure the authenticated user is the correct user
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
@@ -286,19 +299,6 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("WWW-Authenticate", "Token")
 		res["error"] = http.StatusText(http.StatusUnauthorized)
 		res.Send(rw, req, http.StatusUnauthorized)
-		return
-	}
-
-	// Ensure user exists
-	exists, err := UserExists(name)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-	if !exists {
-		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 

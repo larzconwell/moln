@@ -124,7 +124,7 @@ func Authenticate(req *http.Request) (bool, string, error) {
 		}
 
 		user, err := GetUser(name)
-		if err != nil {
+		if err != nil || user["password"] == "" {
 			return authenticated, "", err
 		}
 		matches, err := MatchPass(user["password"], dataSplit[1])

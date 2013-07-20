@@ -14,6 +14,19 @@ func ShowActivitiesHandler(rw http.ResponseWriter, req *http.Request) {
 	user := vars["user"]
 	res := Response{}
 
+	// Ensure user exists
+	exists, err := UserExists(user)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
 	// Authenticate the request, ensure the authenticated user is the correct user
 	authenticated, currentUser, err := Authenticate(req)
 	if err != nil {
@@ -30,19 +43,6 @@ func ShowActivitiesHandler(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("WWW-Authenticate", "Token")
 		res["error"] = http.StatusText(http.StatusUnauthorized)
 		res.Send(rw, req, http.StatusUnauthorized)
-		return
-	}
-
-	// Ensure user exists
-	exists, err := UserExists(user)
-	if err != nil {
-		res["error"] = err.Error()
-		res.Send(rw, req, http.StatusInternalServerError)
-		return
-	}
-	if !exists {
-		res["error"] = http.StatusText(http.StatusNotFound)
-		res.Send(rw, req, http.StatusNotFound)
 		return
 	}
 
