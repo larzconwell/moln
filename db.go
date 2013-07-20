@@ -131,6 +131,12 @@ func GetUserActivities(user string, iterator func(map[string]string) error) ([]m
 	return activities, nil
 }
 
+// AddActivityToUser adds a activity to the users devices
+func AddActivityToUser(user, activity string) error {
+	_, err := DB.Do("lpush", "users:"+user+":activities", activity)
+	return err
+}
+
 // DeleteUserActivities deletes the users activity set
 func DeleteUserActivities(user string) error {
 	_, err := DB.Do("del", "users:"+user+":activities")
@@ -171,6 +177,12 @@ func DeleteDevice(user, device string) error {
 /*
  * Activity
  */
+
+// CreateActivity creates a activity in the DB
+func CreateActivity(user, activity, message string) error {
+	_, err := DB.Do("hmset", "users:"+user+":activities:"+activity, "time", activity, "message", message)
+	return err
+}
 
 // DeleteActivity deletes a activity from the DB
 func DeleteActivity(user, activity string) error {

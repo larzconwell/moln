@@ -8,7 +8,7 @@ Currently no clients are available though in the future I plain to implement som
 ### Features
 - [DONE] Multiple user accounts
 - [DONE] Account access from devices
-- [] Account access logs
+- [DONE] Account access logs
 - [] File sync
 - [] Calendar sync
 - [] Address book sync

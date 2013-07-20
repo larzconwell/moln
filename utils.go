@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // createAndAppendErrorMsgs creates the given list if nil then appends the items to it
@@ -192,4 +193,17 @@ func ParseForm(rw http.ResponseWriter, req *http.Request, res Response) (url.Val
 		return nil, false
 	}
 	return req.PostForm, true
+}
+
+// NewActivityForUser creates a new activity for the user
+func NewActivityForUser(user, message string) error {
+	t := time.Now().Format(time.RFC3339Nano)
+
+	err := CreateActivity(user, t, message)
+	if err != nil {
+		return err
+	}
+
+	err = AddActivityToUser(user, t)
+	return err
 }

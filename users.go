@@ -83,6 +83,13 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	err = NewActivityForUser(name, "Created account")
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
 	_, ok = params["devicename"]
 	if ok {
 		// Create token for device and token
@@ -108,6 +115,13 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		err = AddDeviceToUser(name, deviceName)
+		if err != nil {
+			res["error"] = err.Error()
+			res.Send(rw, req, http.StatusInternalServerError)
+			return
+		}
+
+		err = NewActivityForUser(name, "Created device "+deviceName+" from "+req.RemoteAddr)
 		if err != nil {
 			res["error"] = err.Error()
 			res.Send(rw, req, http.StatusInternalServerError)
@@ -350,6 +364,13 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	devices, err := GetUserDevices(name, nil)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	err = NewActivityForUser(name, "Updated account from "+req.RemoteAddr)
 	if err != nil {
 		res["error"] = err.Error()
 		res.Send(rw, req, http.StatusInternalServerError)
