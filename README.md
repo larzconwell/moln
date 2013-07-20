@@ -8,7 +8,7 @@ Currently no clients are available though in the future I plain to implement som
 ### Features
 - [DONE] Multiple user accounts
 - [DONE] Account access from devices
-- [] Device access logs
+- [] Account access logs
 - [] File sync
 - [] Calendar sync
 - [] Address book sync
@@ -37,8 +37,14 @@ This is purely here for reference when messing with the server directly
   - `<device>, ...`
   - Set of users device names
 - `users:<user>:devices:<device>`
-  - `name <device> token <token> user <user>`
+  - `name <device> token <token>`
   - Hash of a users device data
+- `users:<user>:activities`
+  - `<activity>, ...`
+  - List of activity times
+- `users:<user>:activities:<activity>`
+  - `time <activity> message <message>`
+  - Hash of activity data
 - `tokens:<token>`
   - `device <device> user <user>`
   - Hash of a tokens data
@@ -62,6 +68,7 @@ Reponses with 2xx status codes can have one of the following responses. The rout
 
 - USER: `{name: '', devices: [DEVICE]}`
 - DEVICE: `{name: '', token: ''}`
+- ACTIVITY: `{time: '', message: ''}`
 
 ##### Response Content Types
 Response content types can be requested when you send a request. Just include a `Content-Type` header with the mime type for the response you want. 
@@ -129,3 +136,9 @@ Delete a users device, authenticated user must be the user the device belongs to
 
 - Authentication: required
 - Body: `{device: DEVICE}`
+
+##### GET /users/{user}/activities
+Retrieve a users activity log including times in rfc3339 format, authenticated user must be the user of the log being retrieved
+
+- Authentication: required
+- Body: `{activities: [ACTIVITY]}`
