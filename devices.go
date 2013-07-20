@@ -9,6 +9,7 @@ func init() {
 	Routes["Devices.Index"] = &Route{[]string{"GET"}, "/users/{user}/devices", ShowDevicesHandler}
 	Routes["Devices.New"] = &Route{[]string{"POST"}, "/users/{user}/devices", CreateDeviceHandler}
 	Routes["Devices.Show"] = &Route{[]string{"GET"}, "/users/{user}/devices/{name}", ShowDeviceHandler}
+	Routes["Devices.Delete"] = &Route{[]string{"DELETE"}, "/users/{user}/devices/{name}", DeleteDeviceHandler}
 }
 
 func ShowDevicesHandler(rw http.ResponseWriter, req *http.Request) {
@@ -193,6 +194,70 @@ func ShowDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 
 	if !authenticated {
 		device["token"] = ""
+	}
+
+	res["device"] = device
+	res.Send(rw, req, 0)
+}
+
+func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	user := vars["user"]
+	name := vars["name"]
+	res := Response{}
+
+	// Authenticate the request, ensure the authenticated user is the correct user
+	authenticated, currentUser, err := Authenticate(req)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	if authenticated && currentUser != user {
+		res["error"] = ErrUserNotAuthorized.Error()
+		res.Send(rw, req, http.StatusForbidden)
+		return
+	}
+	if !authenticated {
+		rw.Header().Set("WWW-Authenticate", "Token")
+		res["error"] = http.StatusText(http.StatusUnauthorized)
+		res.Send(rw, req, http.StatusUnauthorized)
+		return
+	}
+
+	// Get device handling devices not found
+	device, err := GetDevice(user, name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+	_, ok := device["name"]
+	if !ok {
+		res["error"] = http.StatusText(http.StatusNotFound)
+		res.Send(rw, req, http.StatusNotFound)
+		return
+	}
+
+	err = DeleteToken(device["token"])
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	err = RemoveDeviceFromUser(user, name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	err = DeleteDevice(user, name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
 	}
 
 	res["device"] = device

@@ -33,12 +33,6 @@ func CreateToken(user, device, token string) error {
 	return err
 }
 
-// AddDeviceToUser adds a device to the users devices
-func AddDeviceToUser(user, device string) error {
-	_, err := DB.Do("sadd", "users:"+user+":devices", device)
-	return err
-}
-
 // GetUser retrieves a user from the DB
 func GetUser(user string) (map[string]string, error) {
 	u, err := ToMap(DB.Do("hgetall", "users:"+user))
@@ -133,5 +127,17 @@ func DeleteDevice(user, device string) error {
 // DeleteToken deletes a token from the DB
 func DeleteToken(token string) error {
 	_, err := DB.Do("del", "tokens:"+token)
+	return err
+}
+
+// AddDeviceToUser adds a device to the users devices
+func AddDeviceToUser(user, device string) error {
+	_, err := DB.Do("sadd", "users:"+user+":devices", device)
+	return err
+}
+
+// RemoveDeviceFromUser removes a device from the users devices
+func RemoveDeviceFromUser(user, device string) error {
+	_, err := DB.Do("srem", "users:"+user+":devices", device)
 	return err
 }
