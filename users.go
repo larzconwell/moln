@@ -229,6 +229,25 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Delete the activity
+	iterator = func(activity map[string]string) error {
+		return DeleteActivity(name, activity["time"])
+	}
+
+	_, err = GetUserActivities(name, iterator)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
+	err = DeleteUserActivities(name)
+	if err != nil {
+		res["error"] = err.Error()
+		res.Send(rw, req, http.StatusInternalServerError)
+		return
+	}
+
 	err = DeleteUser(name)
 	if err != nil {
 		res["error"] = err.Error()

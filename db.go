@@ -131,6 +131,12 @@ func GetUserActivities(user string, iterator func(map[string]string) error) ([]m
 	return activities, nil
 }
 
+// DeleteUserActivities deletes the users activity set
+func DeleteUserActivities(user string) error {
+	_, err := DB.Do("del", "users:"+user+":activities")
+	return err
+}
+
 /*
  * Device
  */
@@ -159,6 +165,16 @@ func GetDevice(user, device string) (map[string]string, error) {
 // DeleteDevice deletes a device from the DB
 func DeleteDevice(user, device string) error {
 	_, err := DB.Do("del", "users:"+user+":devices:"+device)
+	return err
+}
+
+/*
+ * Activity
+ */
+
+// DeleteActivity deletes a activity from the DB
+func DeleteActivity(user, activity string) error {
+	_, err := DB.Do("del", "users:"+user+":activities:"+activity)
 	return err
 }
 
