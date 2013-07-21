@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	DB redis.Conn
+	DB     redis.Conn
+	Routes map[string]*Route = make(map[string]*Route, 0)
 )
 
 func main() {
@@ -44,18 +45,17 @@ func main() {
 	defer DB.Close()
 
 	router := mux.NewRouter()
-	router.StrictSlash(true)
 	router.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
 
 	for name, r := range Routes {
 		route := router.NewRoute()
 		route.Name(name).Path(r.Path).Methods(r.Methods...)
-		route.Handler(NewContentTypeHandler(http.HandlerFunc(r.Handler)))
+		route.Handler(http.HandlerFunc(r.Handler))
 	}
 
 	server := &http.Server{
 		Addr:         config.ServerAddr,
-		Handler:      NewLogHandler(logFile, router),
+		Handler:      NewSlashHandler(NewLogHandler(logFile, NewContentTypeHandler(router))),
 		ReadTimeout:  config.MaxTimeout,
 		WriteTimeout: config.MaxTimeout,
 	}

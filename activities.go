@@ -13,7 +13,7 @@ func init() {
 func ShowActivitiesHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	user := strings.ToLower(vars["user"])
-	res := Response{}
+	res := make(Response, 0)
 
 	// Ensure user exists
 	exists, err := UserExists(user)

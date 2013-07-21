@@ -20,7 +20,7 @@ type Config struct {
 // Read the given JSON configuration files, returning the final config
 func ReadConfig(files ...string) (*Config, error) {
 	var err error
-	config := &Config{}
+	config := new(Config)
 
 	for _, file := range files {
 		fileF, err := os.OpenFile(file, os.O_RDONLY, os.ModePerm)

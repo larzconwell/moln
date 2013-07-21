@@ -14,7 +14,7 @@ func init() {
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
-	res := Response{}
+	res := make(Response, 0)
 	params, ok := ParseForm(rw, req, res)
 	if !ok {
 		return
@@ -144,7 +144,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	name := strings.ToLower(vars["name"])
-	res := Response{}
+	res := make(Response, 0)
 
 	// Ensure user exists
 	exists, err := UserExists(name)
@@ -185,7 +185,7 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	name := strings.ToLower(vars["name"])
-	res := Response{}
+	res := make(Response, 0)
 
 	// Ensure user exists
 	exists, err := UserExists(name)
@@ -275,7 +275,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
-	res := Response{}
+	res := make(Response, 0)
 	params, ok := ParseForm(rw, req, res)
 	if !ok {
 		return

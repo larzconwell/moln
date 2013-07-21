@@ -16,7 +16,7 @@ func init() {
 func ShowDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	user := strings.ToLower(vars["user"])
-	res := Response{}
+	res := make(Response, 0)
 
 	// Ensure user exists
 	exists, err := UserExists(user)
@@ -55,7 +55,7 @@ func ShowDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
-	res := Response{}
+	res := make(Response, 0)
 	params, ok := ParseForm(rw, req, res)
 	if !ok {
 		return
@@ -172,7 +172,7 @@ func ShowDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	user := strings.ToLower(vars["user"])
 	name := strings.ToLower(vars["name"])
-	res := Response{}
+	res := make(Response, 0)
 
 	// Ensure device exists
 	exists, err := DeviceExists(user, name)
@@ -212,7 +212,7 @@ func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	user := strings.ToLower(vars["user"])
 	name := strings.ToLower(vars["name"])
-	res := Response{}
+	res := make(Response, 0)
 
 	// Get device handling devices not found
 	device, err := GetDevice(user, name)

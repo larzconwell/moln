@@ -6,7 +6,6 @@ import (
 
 var (
 	// Authentication errors
-	ErrTokenNotExist           = errors.New("Authentication: token does not exist")
 	ErrNoAuthorizationValue    = errors.New("Authentication: authorization header value missing")
 	ErrNoAuthorizationPassword = errors.New("Authentication: authorization header password missing")
 
@@ -23,4 +22,7 @@ var (
 	ErrDeviceNotExist      = errors.New("Device: device does not exist")
 	ErrDeviceNameEmpty     = errors.New("Device: name cannot be empty")
 	ErrDeviceAlreadyExists = errors.New("Device: name already exists")
+
+	// Token errors
+	ErrTokenNotExist = errors.New("Token: token does not exist")
 )
