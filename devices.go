@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"strings"
 )
 
 func init() {
@@ -14,7 +15,7 @@ func init() {
 
 func ShowDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	user := vars["user"]
+	user := strings.ToLower(vars["user"])
 	res := Response{}
 
 	// Ensure user exists
@@ -59,10 +60,10 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	if !ok {
 		return
 	}
-	name := params.Get("name")
+	name := strings.ToLower(params.Get("name"))
 	req.Header.Set("Content-Type", "")
 	vars := mux.Vars(req)
-	user := vars["user"]
+	user := strings.ToLower(vars["user"])
 
 	// Ensure user exists
 	exists, err := UserExists(user)
@@ -169,8 +170,8 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 
 func ShowDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	user := vars["user"]
-	name := vars["name"]
+	user := strings.ToLower(vars["user"])
+	name := strings.ToLower(vars["name"])
 	res := Response{}
 
 	// Ensure device exists
@@ -209,8 +210,8 @@ func ShowDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 
 func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	user := vars["user"]
-	name := vars["name"]
+	user := strings.ToLower(vars["user"])
+	name := strings.ToLower(vars["name"])
 	res := Response{}
 
 	// Get device handling devices not found

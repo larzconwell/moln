@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"strings"
 )
 
 func init() {
@@ -18,9 +19,9 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	if !ok {
 		return
 	}
-	name := params.Get("name")
+	name := strings.ToLower(params.Get("name"))
 	plainPass := params.Get("password")
-	deviceName := params.Get("devicename")
+	deviceName := strings.ToLower(params.Get("devicename"))
 	req.Header.Set("Content-Type", "")
 	token := ""
 
@@ -142,7 +143,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 
 func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	name := vars["name"]
+	name := strings.ToLower(vars["name"])
 	res := Response{}
 
 	// Ensure user exists
@@ -183,7 +184,7 @@ func ShowUserHandler(rw http.ResponseWriter, req *http.Request) {
 
 func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	name := vars["name"]
+	name := strings.ToLower(vars["name"])
 	res := Response{}
 
 	// Ensure user exists
@@ -282,7 +283,7 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	plainPass := params.Get("password")
 	req.Header.Set("Content-Type", "")
 	vars := mux.Vars(req)
-	name := vars["name"]
+	name := strings.ToLower(vars["name"])
 
 	// Ensure user exists
 	exists, err := UserExists(name)

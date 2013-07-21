@@ -62,7 +62,7 @@ func MatchPass(hashPass, plainPass string) (bool, error) {
 
 // GenerateToken creates a unique token from a user name and device name
 func GenerateToken(user, device string) (string, error) {
-	token, err := uuid.NewV5(uuid.NamespaceURL, []byte(user+device))
+	token, err := uuid.NewV5(uuid.NamespaceURL, []byte(strings.ToLower(user+device)))
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +118,7 @@ func Authenticate(req *http.Request) (bool, string, error) {
 			return authenticated, "", err
 		}
 		dataSplit := strings.SplitN(string(data), ":", 2)
-		name := dataSplit[0]
+		name := strings.ToLower(dataSplit[0])
 
 		if len(dataSplit) < 2 || dataSplit[1] == "" {
 			return authenticated, "", ErrNoAuthorizationPassword

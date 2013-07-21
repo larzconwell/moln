@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"strings"
 )
 
 func init() {
@@ -11,7 +12,7 @@ func init() {
 
 func ShowActivitiesHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	user := vars["user"]
+	user := strings.ToLower(vars["user"])
 	res := Response{}
 
 	// Ensure user exists
