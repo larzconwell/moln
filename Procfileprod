@@ -1,2 +1,2 @@
 redis: redis-server config/redis/production.conf
-web: ./moln
+web: ./moln production

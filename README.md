@@ -19,7 +19,9 @@ Moln is a simple sync API server with features similar to OwnCloud, including mu
 4. Run the setup script `[sudo] ./setup`, it'll create the appropriate directories(`sudo` is for production).
 5. Start the Foreman process(e.g. `forego start`) with the appropriate Procfile(`Procfileprod` for production).
 
-Note: When running in production mode on Windows, Redis connects to a UNIX Socket; so you may encounter errors.
+#### Notes:
+- When you clone for it to build you'll have to clone into the project directory in GOPATH(e.g. `$GOPATH/src/github.com/larzconwell/moln`).
+- When running in production mode on Windows, Redis connects to a UNIX Socket; so you may encounter errors.
 
 ### License
 MIT licensed, see [here](https://raw.github.com/larzconwell/moln/master/README.md)
