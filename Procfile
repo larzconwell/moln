@@ -1,2 +1,2 @@
-redis: redis-server config/redis/$ENVIRONMENT.conf
+redis: redis-server config/redis/development.conf
 web: ./moln
