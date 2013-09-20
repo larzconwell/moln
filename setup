@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-mkdir logs
-mkdir db
-mkdir /var/log/redis
-# TODO: Reroute :80 traffic to :3000
+if [[ "$(id -u)" == "0" ]]; then
+  mkdir -p /var/log/redis
+fi
+
+mkdir -p logs db
+go build
