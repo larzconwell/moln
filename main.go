@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"github.com/larzconwell/moln/config"
+	"github.com/larzconwell/moln/loggers"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -13,10 +14,20 @@ func main() {
 		env = os.Args[1]
 	}
 
-	conf, err := config.Read("config/environment.json", "config/"+env+".json")
+	conf, err := config.ReadFiles("config/environment.json", "config/"+env+".json")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
-	fmt.Println(conf)
+	errorLogger, errorLogFile, err := loggers.Error(filepath.Join(conf.LogDir, "errors"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer errorLogFile.Close()
+
+	logFile, err := loggers.Access(conf.LogDir)
+	if err != nil {
+		errorLogger.Fatalln(err)
+	}
+	defer logFile.Close()
 }

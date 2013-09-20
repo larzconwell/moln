@@ -5,7 +5,7 @@ import (
 )
 
 func TestRead(t *testing.T) {
-	config, err := Read("environment.json", "development.json")
+	config, err := ReadFiles("environment.json", "development.json")
 	if err != nil {
 		t.Fatal(err)
 	}
