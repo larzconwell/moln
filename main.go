@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/larzconwell/moln/config"
 	"github.com/larzconwell/moln/loggers"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -30,4 +32,21 @@ func main() {
 		errorLogger.Fatalln(err)
 	}
 	defer logFile.Close()
+
+	router := mux.NewRouter()
+	server := &http.Server{
+		Addr:         conf.ServerAddr,
+		Handler:      router,
+		ReadTimeout:  conf.MaxTimeout,
+		WriteTimeout: conf.MaxTimeout,
+	}
+
+	if conf.TLS != nil {
+		err = server.ListenAndServeTLS(conf.TLS.Cert, conf.TLS.Key)
+	} else {
+		err = server.ListenAndServe()
+	}
+	if err != nil {
+		errorLogger.Fatal(err)
+	}
 }
