@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"github.com/larzconwell/moln/config"
+	"github.com/larzconwell/moln/handlers"
 	"github.com/larzconwell/moln/loggers"
 	"log"
 	"net/http"
@@ -34,6 +35,8 @@ func main() {
 	defer logFile.Close()
 
 	router := mux.NewRouter()
+	router.NotFoundHandler = handlers.NewLogHandler(logFile, handlers.NotFound)
+
 	server := &http.Server{
 		Addr:         conf.ServerAddr,
 		Handler:      router,
