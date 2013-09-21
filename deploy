@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -e
+
+dir="$(pwd)"
+
+if [[ "${GOROOT}" == "" ]]; then
+  echo "The GOROOT environment variable is required"
+  exit 1
+fi
+
+if [[ "${@}" == "" ]]; then
+  echo "No user@hostname's were given"
+  exit 1
+fi
+
+for login in ${@}; do
+  echo -e "Deploying to ${login}\n"
+  user="$(echo ${login} | sed -e 's/@.*//')"
+
+  echo "Checking if Redis is installed"
+  installed="$(ssh "${login}" '[[ -f "$(which redis-server)" ]] && echo "1" || echo "0"')"
+  if [[ "${installed}" == "0" ]]; then
+    echo "Redis is not installed"
+    continue
+  fi
+
+  # Get server arch
+  echo "Getting target architecture"
+  arch="$(ssh "${login}" "uname -p")"
+  if [[ "${arch}" == "x86_64" ]]; then
+    arch="amd64"
+  elif [[ "${arch}" =~ "arm" ]]; then
+    arch="arm"
+  else
+    arch="386"
+  fi
+
+  echo "Compiling Go for ${arch}"
+  cd "${GOROOT}/src"
+  GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 ./make.bash --no-clean >> /dev/null 2>&1
+
+  echo "Compiling Moln"
+  cd "${dir}"
+  GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go build
+
+  echo "Copying files to the server"
+  ssh "${login}" "mkdir -p /mnt/www/moln/config/redis"
+  ssh "${login}" '[[ -f "/etc/init/redis-server.conf" ]] && sudo stop redis-server >> /dev/null'
+  ssh "${login}" '[[ -f "/etc/init/moln.conf" ]] && sudo stop moln >> /dev/null'
+  scp moln "${login}:/mnt/www/moln"
+  scp config/{environment,production}.json "${login}:/mnt/www/moln/config"
+  scp config/redis/production.conf "${login}:/mnt/www/moln/config/redis"
+  scp upstart/* "${login}:/etc/init"
+
+  echo "Starting Redis and Moln"
+  ssh "${login}" "sudo start redis-server >> /dev/null"
+
+  echo ""
+done
+
+rm moln

@@ -21,7 +21,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	errorLogger, errorLogFile, err := loggers.Error(filepath.Join(conf.LogDir, "errors"))
+	errorLogger, errorLogFile, err := loggers.Error(filepath.Join(conf.LogDir, "errors.log"))
 	if err != nil {
 		log.Fatalln(err)
 	}

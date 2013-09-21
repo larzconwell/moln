@@ -1,4 +1,4 @@
 *.test
 logs/*
-db/*
+data/*
 moln

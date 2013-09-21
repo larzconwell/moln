@@ -1,5 +1,4 @@
 {
-  "LogDir": "logs",
   "MaxTimeoutStr": "2s",
   "ServerAddr": ":3000"
 }

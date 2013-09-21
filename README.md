@@ -12,16 +12,51 @@ Moln is a simple sync API server with features similar to OwnCloud, including mu
 - [] Address book sync
 - [] Task manager
 
-### Running a server
-1. Install Redis stable.
-2. Install a [Foreman](https://github.com/ddollar/forego) tool.
-3. Clone the server code `git clone git@github.com:larzconwell/moln.git` and `cd` to it.
-4. Run the setup script `[sudo] ./setup`, it'll create the appropriate directories(`sudo` is for production).
-5. Start the Foreman process(e.g. `forego start`) with the appropriate Procfile(`Procfileprod` for production).
+### Running and Deploying
+
+#### Prerequisites
+1. Install Redis.
+2. Go(only the development machine needs Go).
+3. The [Foreman](https://github.com/ddollar/foreman) tool(only the development machine needs it).
+4. A clone of the server code in the GOPATH(`git clone git@github.com:larzconwell/moln $GOPATH/src/github.com/larzconwell/moln`).
+
+#### Running a Development Server
+1. Run the dev script `./dev`.
+
+This script will build the server, create any directories needed, and start the servers with the
+Foreman tool(including the Redis server).
+
+#### Deploying to a Production Server
+1. Configure port 80 to reroute to 3000.
+2. Create directories `/mnt/www/moln`, `/data`, `/var/log/moln`, and `/var/log/redis`.
+3. Create files `/etc/init/redis-server.conf` and `/etc/init/moln.conf`.
+4. Make sure the directories and files created above can be written to by the user.
+5. Make sure the `redis-server` and `moln` upstart process can be started and stopped by the user.
+6. Run the deploy script `./deploy <servers...>`.
+
+This script will do the following for each given server:
+- build the binary for the servers arch(on the development machine)
+- copy the binary and the config directory to appropriate place
+- copy the upstart scripts to the appropriate place
+- restart redis-server, and moln upstart processes
 
 #### Notes:
-- When you clone for it to build you'll have to clone into the project directory in GOPATH(e.g. `$GOPATH/src/github.com/larzconwell/moln`).
+- The servers being deployed to are assumed to be Linux.
 - When running in production mode on Windows, Redis connects to a UNIX Socket; so you may encounter errors.
+
+#### TLS
+So the deployment process above is for standard HTTP, if you want to secure your servers traffic,
+add the following to your production configuration(`config/production.json`).
+```
+{
+  "TLS": {
+    "Key": "/path/to/server.key",
+    "Cert": "/path/to/server.crt"
+  }
+}
+```
+
+Then instead of redirecting port 80's traffic to port 3000, redirect port 443.
 
 ### License
 MIT licensed, see [here](https://raw.github.com/larzconwell/moln/master/README.md)

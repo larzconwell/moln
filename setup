@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-if [[ "$(id -u)" == "0" ]]; then
-  mkdir -p /var/log/redis
-fi
-
-mkdir -p logs db
-go build

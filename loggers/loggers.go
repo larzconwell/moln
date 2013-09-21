@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func Error(file string) (*log.Logger, *os.File, error) {
 
 // Access creates or opens a log file using logPath as the base directory. A new log
 // file is only created if there's no existing log files or if the newest log file is
-// older than a wee old.
+// older than a week old.
 func Access(logPath string) (*os.File, error) {
 	var logFile *os.File
 
@@ -49,10 +50,12 @@ func Access(logPath string) (*os.File, error) {
 	// If log files exists, get the most recent one
 	if len(logFiles) > 0 {
 		for _, filename := range logFiles {
-			if filename == "errors" {
+			basename := strings.Replace(filename, filepath.Ext(filename), "", 1)
+
+			if basename == "errors" || basename == "stdout" {
 				continue
 			}
-			fileDate, err := time.Parse(time.RFC3339, filename)
+			fileDate, err := time.Parse(time.RFC3339, basename)
 			if err != nil {
 				return nil, err
 			}
@@ -71,7 +74,7 @@ func Access(logPath string) (*os.File, error) {
 
 	// Create a new log file if non are in use
 	if logFile == nil {
-		logPath = filepath.Join(logPath, time.Now().Format(time.RFC3339))
+		logPath = filepath.Join(logPath, time.Now().Format(time.RFC3339)+".log")
 		logFile, err = os.Create(logPath)
 		if err != nil {
 			return nil, err
