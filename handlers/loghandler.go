@@ -71,17 +71,17 @@ type responseLogger struct {
 	Length         int
 }
 
-// Header returns the responses headers
+// Header returns the responses headers.
 func (rl *responseLogger) Header() http.Header {
 	return rl.ResponseWriter.Header()
 }
 
-// WriteHeader writes the header, keeping track of the status code
+// WriteHeader writes the header, keeping track of the status code.
 func (rl *responseLogger) WriteHeader(status int) {
 	rl.ResponseWriter.WriteHeader(status)
 }
 
-// Write writes the response and keeps track of the content length
+// Write writes the response and keeps track of the content length.
 func (rl *responseLogger) Write(b []byte) (int, error) {
 	// If no status has been written default to OK
 	if rl.Status == 0 {

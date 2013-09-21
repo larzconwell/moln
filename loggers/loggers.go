@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Error creates a error logger to the given file
+// Error creates a error logger to the given file.
 func Error(file string) (*log.Logger, *os.File, error) {
 	err := os.MkdirAll(filepath.Dir(file), os.ModePerm|os.ModeDir)
 	if err != nil {

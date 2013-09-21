@@ -26,7 +26,7 @@ type Config struct {
 	TLS           *TLS
 }
 
-// ReadFiles reads the given JSON config files and returns the combined config
+// ReadFiles reads the given JSON config files and returns the combined config.
 func ReadFiles(files ...string) (*Config, error) {
 	var (
 		err   error

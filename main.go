@@ -34,8 +34,9 @@ func main() {
 	}
 	defer logFile.Close()
 
+	handlers.ContentTypes["application/json"] = "{\"error\": \"{{message}}\"}"
 	router := mux.NewRouter()
-	router.NotFoundHandler = handlers.NewLogHandler(logFile, handlers.NotFound)
+	router.NotFoundHandler = handlers.NewLogHandler(logFile, handlers.NewContentType(handlers.NotFound))
 
 	server := &http.Server{
 		Addr:         conf.ServerAddr,
