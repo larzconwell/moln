@@ -35,7 +35,7 @@ for login in ${@}; do
     arch="386"
   fi
 
-  echo "Compiling Go for ${arch}"
+  echo "Compiling Go for Linux ${arch}"
   cd "${GOROOT}/src"
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 ./make.bash --no-clean >> /dev/null 2>&1
 
@@ -45,12 +45,15 @@ for login in ${@}; do
 
   echo "Copying files to the server"
   ssh "${login}" "mkdir -p /mnt/www/moln/config/redis"
-  ssh "${login}" '[[ -f "/etc/init/redis-server.conf" ]] && sudo stop redis-server >> /dev/null'
-  ssh "${login}" '[[ -f "/etc/init/moln.conf" ]] && sudo stop moln >> /dev/null'
+  ssh "${login}" '[[ -f "/etc/init/redis-server.conf" ]] && sudo stop redis-server || echo "0"' >> /dev/null
+  ssh "${login}" '[[ -f "/etc/init/moln.conf" ]] && sudo stop moln || echo "0"' >> /dev/null
   scp moln "${login}:/mnt/www/moln"
   scp config/{environment,production}.json "${login}:/mnt/www/moln/config"
   scp config/redis/production.conf "${login}:/mnt/www/moln/config/redis"
-  scp upstart/* "${login}:/etc/init"
+  mkdir -p /tmp/upstartscripts
+  cat upstart/redis-server.conf | sed -e "s/#{user}/${user}/g" > /tmp/upstartscripts/redis-server.conf
+  cat upstart/moln.conf | sed -e "s/#{user}/${user}/g" > /tmp/upstartscripts/moln.conf
+  scp /tmp/upstartscripts/* "${login}:/etc/init"
 
   echo "Starting Redis and Moln"
   ssh "${login}" "sudo start redis-server >> /dev/null"
@@ -59,3 +62,4 @@ for login in ${@}; do
 done
 
 rm moln
+rm -r /tmp/upstartscripts

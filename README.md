@@ -32,7 +32,7 @@ Foreman tool(including the Redis server).
 3. Create files `/etc/init/redis-server.conf` and `/etc/init/moln.conf`.
 4. Make sure the directories and files created above can be written to by the user.
 5. Make sure the `redis-server` and `moln` upstart process can be started and stopped by the user.
-6. Run the deploy script `./deploy <servers...>`.
+6. Run the deploy script `./deploy <user@host...>`.
 
 This script will do the following for each given server:
 - build the binary for the servers arch(on the development machine)
