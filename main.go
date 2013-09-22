@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 )
 
+var Routes = make([]*Route, 0)
+
 func main() {
 	env := "development"
 	if len(os.Args) > 1 {
@@ -39,6 +41,12 @@ func main() {
 		"{\"error\": \"{{message}}\"}", json.Marshal, true)
 	router := mux.NewRouter()
 	router.NotFoundHandler = httpextra.NotFoundHandler
+
+	for _, r := range Routes {
+		route := router.NewRoute()
+		route.Name(r.Name).Path(r.Path).Methods(r.Methods...)
+		route.Handler(r.Handler)
+	}
 
 	server := &http.Server{
 		Addr: conf.ServerAddr,
