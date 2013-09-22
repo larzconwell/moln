@@ -81,12 +81,20 @@ func RequestContentType(req *http.Request) (contentType *ContentType) {
 			t = params[0]
 
 			ct, ok := ContentTypes[t]
-			if ok || t == "*/*" {
+			if ok {
 				contentType = ct
 				break
 			}
 
 			// Check for wildcards
+			if t == "*/*" {
+				for _, ct := range ContentTypes {
+					contentType = ct
+					break
+				}
+				break
+			}
+
 			params = strings.Split(t, "/")
 			for ct, _ := range ContentTypes {
 				ctSplit := strings.Split(ct, "/")
