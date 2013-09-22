@@ -41,6 +41,7 @@ for login in ${@}; do
 
   echo "Compiling Moln"
   cd "${dir}"
+  GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get github.com/gorilla/mux
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go build
 
   echo "Copying files to the server"

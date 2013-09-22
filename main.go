@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"github.com/larzconwell/moln/config"
-	"github.com/larzconwell/moln/handlers"
+	"github.com/larzconwell/moln/httpextra"
 	"github.com/larzconwell/moln/loggers"
 	"log"
 	"net/http"
@@ -34,13 +34,14 @@ func main() {
 	}
 	defer logFile.Close()
 
-	handlers.ContentTypes["application/json"] = "{\"error\": \"{{message}}\"}"
+	httpextra.AddContentType("application/json", ".json", "{\"error\": \"{{message}}\"}", true)
 	router := mux.NewRouter()
-	router.NotFoundHandler = handlers.NewLogHandler(logFile, handlers.NewContentType(handlers.NotFound))
+	router.NotFoundHandler = httpextra.NotFoundHandler
 
 	server := &http.Server{
-		Addr:         conf.ServerAddr,
-		Handler:      router,
+		Addr: conf.ServerAddr,
+		Handler: httpextra.NewSlashHandler(httpextra.NewLogHandler(logFile,
+			httpextra.NewContentTypeHandler(router))),
 		ReadTimeout:  conf.MaxTimeout,
 		WriteTimeout: conf.MaxTimeout,
 	}

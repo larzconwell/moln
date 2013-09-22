@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
 mkdir -p logs data
+go get github.com/gorilla/mux
 go build
 foreman start
