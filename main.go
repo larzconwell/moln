@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/larzconwell/moln/config"
 	"github.com/larzconwell/moln/httpextra"
@@ -34,7 +35,8 @@ func main() {
 	}
 	defer logFile.Close()
 
-	httpextra.AddContentType("application/json", ".json", "{\"error\": \"{{message}}\"}", true)
+	httpextra.AddContentType("application/json", ".json",
+		"{\"error\": \"{{message}}\"}", json.Marshal, true)
 	router := mux.NewRouter()
 	router.NotFoundHandler = httpextra.NotFoundHandler
 

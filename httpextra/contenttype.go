@@ -16,20 +16,41 @@ type ContentType struct {
 	Mime      string
 	Extension string
 	Error     string
+	Marshal   func(interface{}) ([]byte, error)
 	Default   bool
 }
 
 // AddContentType adds a new content type to the list of content types.
-func AddContentType(mime, extension, err string, def bool) *ContentType {
-	ct := &ContentType{mime, extension, err, def}
+func AddContentType(mime, extension, err string, marshal func(interface{}) ([]byte, error), def bool) *ContentType {
+	ct := &ContentType{mime, extension, err, marshal, def}
 
 	ContentTypes[mime] = ct
 
 	return ct
 }
 
-// ContentTypeSupported checks if a given request accepts a supported format.
-func ContentTypeSupported(req *http.Request) (supported bool) {
+// DefaultContentType returns the content type set to default, or if none are
+// set the first one is returned.
+func DefaultContentType() (contentType *ContentType) {
+	for _, ct := range ContentTypes {
+		if ct.Default {
+			contentType = ct
+			break
+		}
+	}
+
+	if contentType == nil {
+		for _, ct := range ContentTypes {
+			contentType = ct
+			break
+		}
+	}
+
+	return
+}
+
+// RequestContentType gets an acceptable response format from a request.
+func RequestContentType(req *http.Request) (contentType *ContentType) {
 	ext := path.Ext(req.URL.Path)
 	if ext == "." {
 		ext = ""
@@ -39,7 +60,7 @@ func ContentTypeSupported(req *http.Request) (supported bool) {
 	if ext != "" {
 		for _, ct := range ContentTypes {
 			if ct.Extension == ext {
-				supported = true
+				contentType = ct
 				break
 			}
 		}
@@ -59,9 +80,9 @@ func ContentTypeSupported(req *http.Request) (supported bool) {
 			params := strings.Split(t, ";")
 			t = params[0]
 
-			_, ok := ContentTypes[t]
+			ct, ok := ContentTypes[t]
 			if ok || t == "*/*" {
-				supported = true
+				contentType = ct
 				break
 			}
 
@@ -72,7 +93,7 @@ func ContentTypeSupported(req *http.Request) (supported bool) {
 
 				if (params[0] == "*" && params[1] == ctSplit[1]) ||
 					(params[1] == "*" && params[0] == ctSplit[0]) {
-					supported = true
+					contentType = ContentTypes[ct]
 					break
 				}
 			}
@@ -88,19 +109,13 @@ func ContentTypeSupported(req *http.Request) (supported bool) {
 			}
 
 			acceptCheck(accept)
-			if supported {
+			if contentType != nil {
 				break
 			}
 		}
+		return
 	}
 
-	// No extension and no accept headers, so find a default
-	for _, ct := range ContentTypes {
-		if ct.Default {
-			supported = true
-			break
-		}
-	}
-
-	return
+	// No extension and no accept header, so just get the default
+	return DefaultContentType()
 }

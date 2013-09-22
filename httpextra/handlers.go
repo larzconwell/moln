@@ -14,8 +14,8 @@ import (
 var NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 func notFoundHandler(rw http.ResponseWriter, req *http.Request) {
-	rw.WriteHeader(404)
-	fmt.Fprint(rw, "404 not found ", req.URL)
+	res := Response{"error": http.StatusText(http.StatusNotFound)}
+	res.Send(rw, req, http.StatusNotFound)
 }
 
 // LogHandler is a http.Handler that logs requests in Common Log Format.
@@ -85,11 +85,11 @@ func NewContentTypeHandler(handler http.Handler) *ContentTypeHandler {
 // ServeHTTP calls the handler if a requested response content type is supported,
 // otherwise a 406 is returned.
 func (cth *ContentTypeHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if ContentTypeSupported(req) {
+	if RequestContentType(req) != nil {
 		cth.Handler.ServeHTTP(rw, req)
 	} else {
-		rw.WriteHeader(http.StatusNotAcceptable)
-		fmt.Fprint(rw, http.StatusText(http.StatusNotAcceptable))
+		res := Response{"error": http.StatusText(http.StatusNotAcceptable)}
+		res.SendDefault(rw, req, http.StatusNotAcceptable)
 	}
 }
 
@@ -104,8 +104,10 @@ func NewSlashHandler(handler http.Handler) *SlashHandler {
 
 // ServeHTTP stripes a trailing slash and calls the handler
 func (sh *SlashHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	req.URL.Path = strings.TrimRight(req.URL.Path, "/")
-	req.RequestURI = req.URL.RequestURI()
+	if req.URL.Path != "/" {
+		req.URL.Path = strings.TrimRight(req.URL.Path, "/")
+		req.RequestURI = req.URL.RequestURI()
+	}
 
 	sh.Handler.ServeHTTP(rw, req)
 }
