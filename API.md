@@ -72,7 +72,21 @@ Delete the authenticated user.
 - Response: `<USER>`
 
 #### Devices
-##### GET /devices
 ##### POST /devices
+Create a device for the authenticated user if avaiable.
+
+- Data: `name`
+- Authentication: required
+- Response: `<DEVICE>`
+
 ##### GET /devices/{name}
+Get a device from the authenticated user.
+
+- Authentication: required
+- Response: `<DEVICE>`
+
 ##### DELETE /devices/{name}
+Delete a device from the authenticated user.
+
+- Authentication: required
+- Response: `<DEVICE>`
