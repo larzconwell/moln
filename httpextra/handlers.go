@@ -14,8 +14,8 @@ import (
 var NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 func notFoundHandler(rw http.ResponseWriter, req *http.Request) {
-	res := Response{"error": http.StatusText(http.StatusNotFound)}
-	res.Send(rw, req, http.StatusNotFound)
+	res := &Response{rw, req}
+	res.Send(map[string]string{"error": http.StatusText(http.StatusNotFound)}, http.StatusNotFound)
 }
 
 // LogHandler is a http.Handler that logs requests in Common Log Format.
@@ -88,8 +88,9 @@ func (cth *ContentTypeHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reque
 	if RequestContentType(req) != nil {
 		cth.Handler.ServeHTTP(rw, req)
 	} else {
-		res := Response{"error": http.StatusText(http.StatusNotAcceptable)}
-		res.SendDefault(rw, req, http.StatusNotAcceptable)
+		res := &Response{rw, req}
+		res.SendDefault(map[string]string{"error": http.StatusText(http.StatusNotAcceptable)},
+			http.StatusNotAcceptable)
 	}
 }
 

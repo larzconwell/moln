@@ -96,6 +96,10 @@ func RequestContentType(req *http.Request) (contentType *ContentType) {
 			}
 
 			params = strings.Split(t, "/")
+			if len(params) < 2 {
+				continue
+			}
+
 			for ct, _ := range ContentTypes {
 				ctSplit := strings.Split(ct, "/")
 
