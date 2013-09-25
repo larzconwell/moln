@@ -10,5 +10,5 @@ type Route struct {
 	Name    string
 	Path    string
 	Methods []string
-	Handler http.Handler
+	Handler http.HandlerFunc
 }

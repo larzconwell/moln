@@ -44,8 +44,8 @@ func main() {
 
 	for _, r := range Routes {
 		route := router.NewRoute()
-		route.Name(r.Name).Path(r.Path).Methods(r.Methods...)
-		route.Handler(r.Handler)
+		route.Name(r.Name).Path(r.Path + "{ext:(\\.[a-z]+)?}").Methods(r.Methods...)
+		route.HandlerFunc(r.Handler)
 	}
 
 	server := &http.Server{
