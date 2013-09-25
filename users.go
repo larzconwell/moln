@@ -32,14 +32,14 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		return nil, nil
-  }, func() (error, error) {
-    _, ok = params["device"]
-    if ok && deviceName == "" {
-      return ErrDeviceNameEmpty, nil
-    }
+	}, func() (error, error) {
+		_, ok = params["device"]
+		if ok && deviceName == "" {
+			return ErrDeviceNameEmpty, nil
+		}
 
-    return nil, nil
-  })
+		return nil, nil
+	})
 	if !ok {
 		return
 	}
