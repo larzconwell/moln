@@ -1,5 +1,5 @@
 {
   "LogDir": "logs",
-  "RedisAddr": ":6379",
-  "RedisNetwork": "tcp"
+  "DBAddr": ":6379",
+  "DBNetwork": "tcp"
 }

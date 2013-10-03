@@ -12,7 +12,11 @@ import (
 	"path/filepath"
 )
 
-var Routes = make([]*Route, 0)
+var (
+	DB     *DBConn
+	Routes = make([]*Route, 0)
+	err    error
+)
 
 func main() {
 	env := "development"
@@ -36,6 +40,12 @@ func main() {
 		errorLogger.Fatalln(err)
 	}
 	defer logFile.Close()
+
+	DB, err = DBDialTimeout(conf.DBNetwork, conf.DBAddr, conf.MaxTimeout, conf.MaxTimeout, conf.MaxTimeout)
+	if err != nil {
+		errorLogger.Fatalln(err)
+	}
+	defer DB.Close()
 
 	httpextra.AddContentType("application/json", ".json",
 		"{\"error\": \"{{message}}\"}", json.Marshal, true)

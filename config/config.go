@@ -17,8 +17,8 @@ type TLS struct {
 // Config describes the options for Moln.
 type Config struct {
 	LogDir        string
-	RedisAddr     string
-	RedisNetwork  string
+	DBAddr        string
+	DBNetwork     string
 	ServerAddr    string
 	ServerNetwork string
 	MaxTimeoutStr string

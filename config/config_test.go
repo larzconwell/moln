@@ -16,7 +16,7 @@ func TestRead(t *testing.T) {
 	}
 
 	// Test option from development
-	if config.RedisNetwork != "tcp" {
-		t.Error("RedisNetwork option is incorrect")
+	if config.DBNetwork != "tcp" {
+		t.Error("DBNetwork option is incorrect")
 	}
 }

@@ -1,5 +1,5 @@
 {
   "LogDir": "/var/log/moln",
-  "RedisAddr": "/tmp/redis.sock",
-  "RedisNetwork": "unix"
+  "DBAddr": "/tmp/redis.sock",
+  "DBNetwork": "unix"
 }
