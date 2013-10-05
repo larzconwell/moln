@@ -90,3 +90,18 @@ Delete a device from the authenticated user.
 
 - Authentication: required
 - Response: `<DEVICE>`
+
+### Redis
+The following list is a reference to the backend Redis keys
+- `users:<user>`
+  - `name <user> password <password>`
+  - A hash of user data
+- `users:<user>:devices`
+  - `<device>, ...`
+  - Set of users device names
+- `users:<user>:devices:<device>`
+  - `name <device> token <token>`
+  - Hash of device data
+- `tokens:<token>`
+  - `device <device> user <user>`
+  - Hash of token data

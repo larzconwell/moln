@@ -44,6 +44,7 @@ for login in ${@}; do
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get github.com/gorilla/mux
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get code.google.com/p/go.crypto/bcrypt
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get github.com/garyburd/redigo/redis
+  GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get github.com/nu7hatch/gouuid
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go build
 
   echo "Copying files to the server"

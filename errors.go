@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	ErrDeviceNameEmpty = errors.New("Device: name cannot be empty")
+	ErrDeviceNameEmpty     = errors.New("Device: name cannot be empty")
+	ErrDeviceAlreadyExists = errors.New("Device: name already exists")
 
 	ErrUserNameEmpty     = errors.New("User: name cannot be empty")
 	ErrUserPasswordEmpty = errors.New("User: password cannot be empty")
