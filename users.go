@@ -7,8 +7,9 @@ import (
 
 func init() {
 	CreateUser := &Route{"CreateUser", "/user", []string{"POST"}, CreateUserHandler}
+	GetUser := &Route{"GetUser", "/user", []string{"GET"}, GetUserHandler}
 
-	Routes = append(Routes, CreateUser)
+	Routes = append(Routes, CreateUser, GetUser)
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
@@ -53,4 +54,20 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	} else {
 		res.Send(user, http.StatusOK)
 	}
+}
+
+func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
+	user := Authenticate(rw, req)
+	if user == nil {
+		return
+	}
+	res := &httpextra.Response{rw, req}
+
+	devices, err := DB.GetDevices(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	res.Send(map[string]interface{}{"user": user, "devices": devices}, http.StatusOK)
 }

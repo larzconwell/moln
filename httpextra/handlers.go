@@ -44,12 +44,12 @@ func (lh *LogHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// Filter out token and password queries
+	// Filter out password queries
 	query := req.URL.Query()
 	for k, v := range query {
 		replace := ""
 
-		if k == "password" || k == "token" {
+		if k == "password" {
 			replace = k
 		}
 

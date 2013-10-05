@@ -1,8 +1,11 @@
 package main
 
 import (
+	"code.google.com/p/go.crypto/bcrypt"
+	"encoding/base64"
 	"github.com/larzconwell/moln/httpextra"
 	"net/http"
+	"strings"
 )
 
 // Validations validates a set of tests, returning a slice of validation errors if any.
@@ -50,4 +53,101 @@ func HandleValidations(rw http.ResponseWriter, req *http.Request, errs []string,
 	}
 
 	return true
+}
+
+// Authenticate authenticates the request handling responses for required auth.
+func Authenticate(rw http.ResponseWriter, req *http.Request) *User {
+	authorization := req.Header.Get("Authorization")
+	authType := ""
+	authValue := ""
+
+	sendErr := func(err string, status int) {
+		if status == http.StatusUnauthorized {
+			rw.Header().Set("WWW-Authenticate", "Token")
+		}
+
+		res := &httpextra.Response{rw, req}
+		res.Send(map[string]string{"error": err}, status)
+	}
+
+	if authorization == "" {
+		sendErr(http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return nil
+	}
+
+	// Split auth type and value
+	authSplit := strings.SplitN(authorization, " ", 2)
+	authType = strings.ToLower(authSplit[0])
+
+	if len(authSplit) < 2 || authSplit[1] == "" {
+		sendErr(ErrNoAuthorizationValue.Error(), http.StatusUnauthorized)
+		return nil
+	}
+	authValue = authSplit[1]
+
+	if authType == "token" {
+		user, err := DB.GetUserByToken(authValue)
+		if err != nil {
+			sendErr(err.Error(), http.StatusInternalServerError)
+			return nil
+		}
+
+		if user != nil {
+			return user
+		}
+	}
+
+	if authType == "basic" {
+		data, err := base64.StdEncoding.DecodeString(authValue)
+		if err != nil {
+			sendErr(err.Error(), http.StatusInternalServerError)
+			return nil
+		}
+		dataSplit := strings.SplitN(string(data), ":", 2)
+		name := dataSplit[0]
+
+		if len(dataSplit) < 2 || dataSplit[1] == "" {
+			sendErr(ErrNoAuthorizationPassword.Error(), http.StatusUnauthorized)
+			return nil
+		}
+
+		user, err := DB.GetUser(name)
+		if err != nil {
+			sendErr(err.Error(), http.StatusInternalServerError)
+			return nil
+		}
+
+		if user != nil {
+			matches, err := MatchPass(dataSplit[1], user.Password)
+			if err != nil {
+				sendErr(err.Error(), http.StatusInternalServerError)
+				return nil
+			}
+
+			if !matches {
+				sendErr(http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return nil
+			}
+
+			return user
+		}
+	}
+
+	sendErr(http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+	return nil
+}
+
+// MatchPass checks if a given password matches a given hashed password
+func MatchPass(plainPass, hashPass string) (bool, error) {
+	match := false
+
+	err := bcrypt.CompareHashAndPassword([]byte(hashPass), []byte(plainPass))
+	if err == nil {
+		match = true
+	}
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		err = nil
+	}
+
+	return match, err
 }
