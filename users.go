@@ -6,10 +6,11 @@ import (
 )
 
 func init() {
-	CreateUser := &Route{"CreateUser", "/user", []string{"POST"}, CreateUserHandler}
-	GetUser := &Route{"GetUser", "/user", []string{"GET"}, GetUserHandler}
+	createUser := &Route{"CreateUser", "/user", []string{"POST"}, CreateUserHandler}
+	getUser := &Route{"GetUser", "/user", []string{"GET"}, GetUserHandler}
+	updateUser := &Route{"UpdateUser", "/user", []string{"PUT"}, UpdateUserHandler}
 
-	Routes = append(Routes, CreateUser, GetUser)
+	Routes = append(Routes, createUser, getUser, updateUser)
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
@@ -70,4 +71,38 @@ func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Send(map[string]interface{}{"user": user, "devices": devices}, http.StatusOK)
+}
+
+func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
+	params, ok := httpextra.ParseForm(rw, req)
+	if !ok {
+		return
+	}
+	_, passwordGiven := params["password"]
+
+	user := Authenticate(rw, req)
+	if user == nil {
+		return
+	}
+	res := &httpextra.Response{rw, req}
+
+	if !passwordGiven {
+		res.Send(user, http.StatusOK)
+		return
+	}
+
+	user.Password = params.Get("password")
+	errs, err := user.Validate(false)
+	ok = HandleValidations(rw, req, errs, err)
+	if !ok {
+		return
+	}
+
+	err = user.Save(true)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	res.Send(user, http.StatusOK)
 }
