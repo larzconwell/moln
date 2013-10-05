@@ -2,5 +2,7 @@
 
 mkdir -p logs data
 go get github.com/gorilla/mux
+go get code.google.com/p/go.crypto/bcrypt
+go get github.com/garyburd/redigo/redis
 go build
 foreman start

@@ -5,7 +5,7 @@ import (
 )
 
 // Route represents the routing details needed to map the path
-// corrrectly
+// corrrectly.
 type Route struct {
 	Name    string
 	Path    string

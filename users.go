@@ -16,34 +16,20 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	if !ok {
 		return
 	}
-	userName := params.Get("name")
-	plainPass := params.Get("password")
-	deviceName := params.Get("device")
+	res := &httpextra.Response{rw, req}
 
-	ok = Validate(rw, req, func() (error, error) {
-		if userName == "" {
-			return ErrUserNameEmpty, nil
-		}
-
-		return nil, nil
-	}, func() (error, error) {
-		if plainPass == "" {
-			return ErrUserPasswordEmpty, nil
-		}
-
-		return nil, nil
-	}, func() (error, error) {
-		_, ok = params["device"]
-		if ok && deviceName == "" {
-			return ErrDeviceNameEmpty, nil
-		}
-
-		return nil, nil
-	})
+	user := &User{params.Get("name"), params.Get("password")}
+	errs, err := user.Validate(true)
+	ok = HandleValidations(rw, req, errs, err)
 	if !ok {
 		return
 	}
 
-	res := &httpextra.Response{rw, req}
-	res.Send(params, 200)
+	err = user.Save(true)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	res.Send(user, http.StatusOK)
 }

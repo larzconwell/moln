@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// Validate a set of tests, handling validation errors.
-func Validate(rw http.ResponseWriter, req *http.Request, tests ...func() (error, error)) bool {
+// Validations validates a set of tests, returning a slice of validation errors if any.
+func Validations(tests ...func() (error, error)) ([]string, error) {
 	var (
 		validationErrs []string
 		fatal          error
@@ -28,16 +28,21 @@ func Validate(rw http.ResponseWriter, req *http.Request, tests ...func() (error,
 		}
 	}
 
-	if validationErrs != nil || fatal != nil {
-		var msg = make(map[string]interface{})
+	return validationErrs, fatal
+}
+
+// HandleValidations responds to a request if any failures or validation errors.
+func HandleValidations(rw http.ResponseWriter, req *http.Request, errs []string, err error) bool {
+	if errs != nil || err != nil {
+		msg := make(map[string]interface{})
 		status := http.StatusBadRequest
 		res := &httpextra.Response{rw, req}
 
-		if fatal != nil {
-			msg["error"] = fatal.Error()
+		if err != nil {
+			msg["error"] = err.Error()
 			status = http.StatusInternalServerError
 		} else {
-			msg["errors"] = validationErrs
+			msg["errors"] = errs
 		}
 
 		res.Send(msg, status)
