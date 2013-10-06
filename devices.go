@@ -39,6 +39,13 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	activity := &Activity{Message: "Created device " + device.Name, User: user}
+	err = activity.Save()
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
 	res.Send(device, http.StatusOK)
 }
 
@@ -85,6 +92,13 @@ func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	device.User = user
 
 	err = device.Delete()
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	activity := &Activity{Message: "Deleted device " + device.Name, User: user}
+	err = activity.Save()
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return

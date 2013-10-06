@@ -10,10 +10,12 @@ import (
 
 // Database keys.
 var (
-	UserKey    = "users:{{user}}"
-	DevicesKey = "users:{{user}}:devices"
-	DeviceKey  = "users:{{user}}:devices:{{device}}"
-	TokenKey   = "tokens:{{token}}"
+	UserKey       = "users:{{user}}"
+	DevicesKey    = "users:{{user}}:devices"
+	DeviceKey     = "users:{{user}}:devices:{{device}}"
+	ActivitiesKey = "users:{{user}}:activities"
+	ActivityKey   = "users:{{user}}:activities:{{activity}}"
+	TokenKey      = "tokens:{{token}}"
 )
 
 // DBConn wraps redis.Conn that includes methods for data management.
@@ -127,6 +129,49 @@ func (db *DBConn) GetDevice(user, name string) (*Device, error) {
 	return device, err
 }
 
+// GetActivities retrieves a users activities.
+func (db *DBConn) GetActivities(user string) ([]*Activity, error) {
+	key := strings.Replace(ActivitiesKey, "{{user}}", user, -1)
+
+	reply, err := redis.Strings(db.Do("lrange", key, 0, -1))
+	if err != nil {
+		return nil, err
+	}
+
+	activities := make([]*Activity, 0)
+	for _, item := range reply {
+		activity, err := db.GetActivity(user, item)
+		if err != nil {
+			return nil, err
+		}
+
+		activities = append(activities, activity)
+	}
+
+	return activities, nil
+}
+
+// GetActivity retrieves a activity.
+func (db *DBConn) GetActivity(user, time string) (*Activity, error) {
+	key := strings.Replace(ActivityKey, "{{user}}", user, -1)
+
+	reply, err := redis.Values(db.Do("hgetall", strings.Replace(key, "{{activity}}", time, -1)))
+	if err != nil {
+		return nil, err
+	}
+
+	activity := new(Activity)
+	err = redis.ScanStruct(reply, activity)
+	if err != nil {
+		activity = nil
+	}
+	if len(reply) <= 0 {
+		activity = nil
+	}
+
+	return activity, err
+}
+
 // DeleteDevices deletes all a users devices
 func (db *DBConn) DeleteDevices(name string) error {
 	devices, err := db.GetDevices(name)
@@ -145,6 +190,29 @@ func (db *DBConn) DeleteDevices(name string) error {
 	}
 
 	return nil
+}
+
+// DeleteActivities deletes all a users activities
+func (db *DBConn) DeleteActivities(name string) error {
+	activities, err := db.GetActivities(name)
+	if err != nil {
+		return err
+	}
+	user := &User{Name: name}
+
+	// Delete activity hashes
+	for _, activity := range activities {
+		activity.User = user
+
+		err = activity.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete activity list here, since we can't remove list items individually easily
+	_, err = db.Do("del", strings.Replace(ActivitiesKey, "{{user}}", name, -1))
+	return err
 }
 
 // User represents a single users data.
@@ -291,6 +359,39 @@ func (device *Device) Delete() error {
 	// Remove from device set
 	key = strings.Replace(DevicesKey, "{{user}}", device.User.Name, -1)
 	_, err = DB.Do("srem", key, device.Name)
+	return err
+}
+
+// Activity represents a single activity for a user.
+type Activity struct {
+	Message string `json:"message" redis:"message"`
+	Time    string `json:"time" redis:"time"`
+	User    *User  `json:"-" redis:"-"`
+}
+
+// Save saves the activity data.
+func (activity *Activity) Save() error {
+	activity.Time = time.Now().Format(time.RFC3339)
+
+	// Add to activity list
+	key := strings.Replace(ActivitiesKey, "{{user}}", activity.User.Name, -1)
+	_, err := DB.Do("lpush", key, activity.Time)
+	if err != nil {
+		return err
+	}
+
+	// Add activity hash
+	key = strings.Replace(ActivityKey, "{{user}}", activity.User.Name, -1)
+	key = strings.Replace(key, "{{activity}}", activity.Time, -1)
+	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(activity)...)
+	return err
+}
+
+// Delete removes the activity data.
+func (activity *Activity) Delete() error {
+	// Remove activity hash
+	key := strings.Replace(ActivityKey, "{{user}}", activity.User.Name, -1)
+	_, err = DB.Do("del", strings.Replace(key, "{{activity}}", activity.Time, -1))
 	return err
 }
 

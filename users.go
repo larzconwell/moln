@@ -52,6 +52,13 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		activity := &Activity{Message: "Created device " + device.Name, User: user}
+		err = activity.Save()
+		if err != nil {
+			res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+			return
+		}
+
 		res.Send(map[string]interface{}{"user": user, "device": device}, http.StatusOK)
 	} else {
 		res.Send(user, http.StatusOK)
@@ -71,7 +78,14 @@ func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Send(map[string]interface{}{"user": user, "devices": devices}, http.StatusOK)
+	activities, err := DB.GetActivities(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	msg := map[string]interface{}{"user": user, "devices": devices, "activities": activities}
+	res.Send(msg, http.StatusOK)
 }
 
 func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
@@ -105,6 +119,13 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	activity := &Activity{Message: "Updated user", User: user}
+	err = activity.Save()
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
 	res.Send(user, http.StatusOK)
 }
 
@@ -115,7 +136,13 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 	res := &httpextra.Response{rw, req}
 
-	err := DB.DeleteDevices(user.Name)
+	err := DB.DeleteActivities(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	err = DB.DeleteDevices(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
