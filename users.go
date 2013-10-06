@@ -9,8 +9,9 @@ func init() {
 	createUser := &Route{"CreateUser", "/user", []string{"POST"}, CreateUserHandler}
 	getUser := &Route{"GetUser", "/user", []string{"GET"}, GetUserHandler}
 	updateUser := &Route{"UpdateUser", "/user", []string{"PUT"}, UpdateUserHandler}
+	deleteUser := &Route{"DeleteUser", "/user", []string{"DELETE"}, DeleteUserHandler}
 
-	Routes = append(Routes, createUser, getUser, updateUser)
+	Routes = append(Routes, createUser, getUser, updateUser, deleteUser)
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
@@ -99,6 +100,28 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	err = user.Save(true)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	res.Send(user, http.StatusOK)
+}
+
+func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
+	user := Authenticate(rw, req)
+	if user == nil {
+		return
+	}
+	res := &httpextra.Response{rw, req}
+
+	err := DB.DeleteDevices(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	err = user.Delete()
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return

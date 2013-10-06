@@ -55,7 +55,7 @@ func (db *DBConn) GetUser(name string) (*User, error) {
 		return nil, err
 	}
 
-	user := &User{}
+	user := new(User)
 	err = redis.ScanStruct(reply, user)
 	if err != nil {
 		user = nil
@@ -74,7 +74,7 @@ func (db *DBConn) GetUserByToken(token string) (*User, error) {
 		return nil, err
 	}
 
-	tok := &Token{}
+	tok := new(Token)
 	err = redis.ScanStruct(reply, tok)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (db *DBConn) GetDevice(user, name string) (*Device, error) {
 		return nil, err
 	}
 
-	device := &Device{}
+	device := new(Device)
 	err = redis.ScanStruct(reply, device)
 	if err != nil {
 		device = nil
@@ -125,6 +125,26 @@ func (db *DBConn) GetDevice(user, name string) (*Device, error) {
 	}
 
 	return device, err
+}
+
+// DeleteDevices deletes all a users devices
+func (db *DBConn) DeleteDevices(name string) error {
+	devices, err := db.GetDevices(name)
+	if err != nil {
+		return err
+	}
+	user := &User{Name: name}
+
+	for _, device := range devices {
+		device.User = user
+
+		err = device.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // User represents a single users data.
@@ -178,6 +198,13 @@ func (user *User) Save(hash bool) error {
 
 	key := strings.Replace(UserKey, "{{user}}", user.Name, -1)
 	_, err := DB.Do("hmset", redis.Args{}.Add(key).AddFlat(user)...)
+	return err
+}
+
+// Delete removes the user data.
+func (user *User) Delete() error {
+	_, err := DB.Do("del", strings.Replace(UserKey, "{{user}}", user.Name, -1))
+
 	return err
 }
 
@@ -243,6 +270,27 @@ func (device *Device) Save(token bool) error {
 	// Add token hash
 	key = strings.Replace(TokenKey, "{{token}}", device.Token, -1)
 	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(&Token{device.User.Name, device.Name})...)
+	return err
+}
+
+// Delete removes the device data.
+func (device *Device) Delete() error {
+	// Remove token hash
+	_, err := DB.Do("del", strings.Replace(TokenKey, "{{token}}", device.Token, -1))
+	if err != nil {
+		return err
+	}
+
+	// Remove device hash
+	key := strings.Replace(DeviceKey, "{{user}}", device.User.Name, -1)
+	_, err = DB.Do("del", strings.Replace(key, "{{device}}", device.Name, -1))
+	if err != nil {
+		return err
+	}
+
+	// Remove from device set
+	key = strings.Replace(DevicesKey, "{{user}}", device.User.Name, -1)
+	_, err = DB.Do("srem", key, device.Name)
 	return err
 }
 

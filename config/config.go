@@ -28,14 +28,11 @@ type Config struct {
 
 // ReadFiles reads the given JSON config files and returns the combined config.
 func ReadFiles(files ...string) (*Config, error) {
-	var (
-		err   error
-		fileF *os.File
-	)
+	var err error
 	config := new(Config)
 
 	for _, file := range files {
-		fileF, err = os.Open(file)
+		fileF, err := os.Open(file)
 		if err != nil {
 			return nil, err
 		}

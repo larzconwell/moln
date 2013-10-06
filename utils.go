@@ -31,7 +31,11 @@ func Validations(tests ...func() (error, error)) ([]string, error) {
 		}
 	}
 
-	return validationErrs, fatal
+	if fatal != nil {
+		return nil, fatal
+	} else {
+		return validationErrs, fatal
+	}
 }
 
 // HandleValidations responds to a request if any failures or validation errors.
