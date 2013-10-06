@@ -39,6 +39,7 @@ In the response sections below for each route, you will see invalid JSON in the 
 these are snippets and the following snippets defined below should be read in place of the name.
 - `USER`: `{"name": ""}`
 - `DEVICE`: `{"name": "", "token": ""}`
+- `ACTIVITY`: `{"time": "", "message": ""}`
 
 #### Users
 ##### POST /user
@@ -54,7 +55,7 @@ this is so you don't have to authenticate with the users password.
 Get the authenticated user.
 
 - Authentication: required
-- Response: `{"user": <USER>, "devices": [<DEVICE>]}`
+- Response: `{"user": <USER>, "devices": [<DEVICE>], "activities": [<ACTIVITY>]}`
 
 ##### PUT /user
 Update the authenticated users data.
@@ -100,6 +101,12 @@ The following list is a reference to the backend Redis keys
 - `users:<user>:devices:<device>`
   - `name <device> token <token>`
   - Hash of device data
+- `users:<user>:activities`
+  - `<activity>, ...`
+  - List of activity times
+- `users:<user>:activities:<activity>`
+  - `time <activity> message <message>`
+  - Hash of activity data
 - `tokens:<token>`
   - `device <device> user <user>`
   - Hash of token data

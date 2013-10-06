@@ -4,8 +4,8 @@ Moln
 Moln is a simple sync API server with features similar to OwnCloud, including multiple user accounts, file sync, and much more.
 
 ### Features
-- [] Multiple user accounts
-- [] Account access from devices
+- [DONE] Multiple user accounts
+- [DONE] Account access from devices
 - [] Account access logs
 - [] File sync
 - [] Calendar sync
