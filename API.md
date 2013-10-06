@@ -3,6 +3,7 @@ The following response bodies are JSON formatted, but actual responses may be in
 
 ### Authentication and Authorization
 Authenticating with Moln can be done in two ways.
+
 1. An `Authorization` header in the following format `Authorization: Token <token>`.
 2. An `Authorization` header including the format `user:password` encoded as base64(i.e. `Authorization: Basic <base64>`).
 
