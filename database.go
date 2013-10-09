@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go.crypto/bcrypt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/nu7hatch/gouuid"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -460,6 +461,23 @@ type Task struct {
 	Message  string `json:"message" redis:"message"`
 	Complete bool   `json:"complete" redis:"complete"`
 	User     *User  `json:"-" redis:"-"`
+}
+
+// Delete removes the task data.
+func (task *Task) Delete() error {
+	id := strconv.Itoa(task.ID)
+
+	// Remove task hash
+	key := strings.Replace(TaskKey, "{{user}}", task.User.Name, -1)
+	_, err = DB.Do("del", strings.Replace(key, "{{task}}", id, -1))
+	if err != nil {
+		return err
+	}
+
+	// Remove from task set
+	key = strings.Replace(TasksKey, "{{user}}", task.User.Name, -1)
+	_, err = DB.Do("srem", key, id)
+	return err
 }
 
 /*
