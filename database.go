@@ -259,6 +259,26 @@ func (db *DBConn) DeleteActivities(name string) error {
 	return err
 }
 
+// DeleteTasks deletes all a users tasks
+func (db *DBConn) DeleteTasks(name string) error {
+	tasks, err := db.GetTasks(name)
+	if err != nil {
+		return err
+	}
+	user := &User{Name: name}
+
+	for _, task := range tasks {
+		task.User = user
+
+		err = task.Delete()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 /*
   User
 */

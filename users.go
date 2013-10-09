@@ -152,6 +152,12 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	err = DB.DeleteTasks(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
 	err = DB.DeleteDevices(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
