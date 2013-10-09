@@ -41,6 +41,7 @@ these are snippets and the following snippets defined below should be read in pl
 - `USER`: `{"name": ""}`
 - `DEVICE`: `{"name": "", "token": ""}`
 - `ACTIVITY`: `{"time": "", "message": ""}`
+- `TASK`: `{"id": 0, "message": "", "complete": false}`
 
 #### Users
 ##### POST /user
@@ -56,7 +57,7 @@ this is so you don't have to authenticate with the users password.
 Get the authenticated user.
 
 - Authentication: required
-- Response: `{"user": <USER>, "devices": [<DEVICE>], "activities": [<ACTIVITY>]}`
+- Response: `{"user": <USER>, "devices": [<DEVICE>], "activities": [<ACTIVITY>], "tasks": [<TASK>]}`
 
 ##### PUT /user
 Update the authenticated users data.
@@ -97,6 +98,39 @@ Delete a device from the authenticated user.
 - Authentication: required
 - Response: `<DEVICE>`
 
+#### Tasks
+##### POST /tasks
+Create a task for the authenticated user.
+
+- Data: `message`
+- Authentication: required
+- Response: `<TASK>`
+
+##### GET /tasks
+Get the tasks from the authenticated user.
+
+- Authentication: required
+- Response: `[<TASK>]`
+
+##### GET /tasks/{id}
+Get a task from the authenticated user.
+
+- Authentication: required
+- Response: `<TASK>`
+
+##### PUT /tasks/{id}
+Update a tasks data for the authenticated user.
+
+- Data: `message`, `complete`
+- Authenticateion: required
+- Response: `<TASK>`
+
+##### DELETE /tasks/{id}
+Delete a task from the authenticated user.
+
+- Authentication: required
+- Response: `<TASK>`
+
 ### Redis
 The following list is a reference to the backend Redis keys
 - `users:<user>`
@@ -114,6 +148,12 @@ The following list is a reference to the backend Redis keys
 - `users:<user>:activities:<activity>`
   - `time <activity> message <message>`
   - Hash of activity data
+- `users:<user>:tasks`
+  - `<task>, ...`
+  - Set of users task ids
+- `users:<user>:tasks:<task>`
+  - `id <task> message <message> complete <complete>`
+  - Hash of task data
 - `tokens:<token>`
   - `device <device> user <user>`
   - Hash of token data
