@@ -79,6 +79,12 @@ Create a device for the authenticated user if avaiable.
 - Authentication: required
 - Response: `<DEVICE>`
 
+##### GET /devices
+Get the devices from the authenticated user.
+
+- Authentication: required
+- Response: `[<DEVICE>]`
+
 ##### GET /devices/{name}
 Get a device from the authenticated user.
 

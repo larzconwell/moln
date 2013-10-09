@@ -8,10 +8,11 @@ import (
 
 func init() {
 	createDevice := &Route{"CreateDevice", "/devices", []string{"POST"}, CreateDeviceHandler}
+	getDevices := &Route{"GetDevices", "/devices", []string{"GET"}, GetDevicesHandler}
 	getDevice := &Route{"GetDevice", "/devices/{name}", []string{"GET"}, GetDeviceHandler}
 	deleteDevice := &Route{"DeleteDevice", "/devices/{name}", []string{"DELETE"}, DeleteDeviceHandler}
 
-	Routes = append(Routes, createDevice, getDevice, deleteDevice)
+	Routes = append(Routes, createDevice, getDevices, getDevice, deleteDevice)
 }
 
 func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
@@ -47,6 +48,22 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Send(device, http.StatusOK)
+}
+
+func GetDevicesHandler(rw http.ResponseWriter, req *http.Request) {
+	user := Authenticate(rw, req)
+	if user == nil {
+		return
+	}
+	res := &httpextra.Response{rw, req}
+
+	devices, err := DB.GetDevices(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	res.Send(devices, http.StatusOK)
 }
 
 func GetDeviceHandler(rw http.ResponseWriter, req *http.Request) {
