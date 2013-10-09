@@ -72,6 +72,13 @@ Delete the authenticated user.
 - Authentication: required
 - Response: `<USER>`
 
+#### Activities
+##### GET /activities
+Get the list of activities for the authenticated user.
+
+- Authentication: required
+- Response: `[<ACTIVITY>]`
+
 #### Devices
 ##### POST /devices
 Create a device for the authenticated user if avaiable.

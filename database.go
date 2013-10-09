@@ -15,6 +15,8 @@ var (
 	DeviceKey     = "users:{{user}}:devices:{{device}}"
 	ActivitiesKey = "users:{{user}}:activities"
 	ActivityKey   = "users:{{user}}:activities:{{activity}}"
+	TasksKey      = "users:{{user}}:tasks"
+	TaskKey       = "users:{{user}}:tasks:{{task}}"
 	TokenKey      = "tokens:{{token}}"
 )
 
@@ -172,6 +174,47 @@ func (db *DBConn) GetActivity(user, time string) (*Activity, error) {
 	return activity, err
 }
 
+// GetTasks retrieves a users tasks.
+func (db *DBConn) GetTasks(user string) ([]*Task, error) {
+	reply, err := redis.Strings(db.Do("smembers", strings.Replace(TasksKey, "{{user}}", user, -1)))
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := make([]*Task, 0)
+	for _, item := range reply {
+		task, err := db.GetTask(user, item)
+		if err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
+}
+
+// GetTask retrieves a task.
+func (db *DBConn) GetTask(user, id string) (*Task, error) {
+	key := strings.Replace(TaskKey, "{{user}}", user, -1)
+
+	reply, err := redis.Values(db.Do("hgetall", strings.Replace(key, "{{task}}", id, -1)))
+	if err != nil {
+		return nil, err
+	}
+
+	task := new(Task)
+	err = redis.ScanStruct(reply, task)
+	if err != nil {
+		task = nil
+	}
+	if len(reply) <= 0 {
+		task = nil
+	}
+
+	return task, err
+}
+
 // DeleteDevices deletes all a users devices
 func (db *DBConn) DeleteDevices(name string) error {
 	devices, err := db.GetDevices(name)
@@ -214,6 +257,10 @@ func (db *DBConn) DeleteActivities(name string) error {
 	_, err = db.Do("del", strings.Replace(ActivitiesKey, "{{user}}", name, -1))
 	return err
 }
+
+/*
+  User
+*/
 
 // User represents a single users data.
 type User struct {
@@ -275,6 +322,10 @@ func (user *User) Delete() error {
 
 	return err
 }
+
+/*
+  Device
+*/
 
 // Device represents a single device for a user.
 type Device struct {
@@ -362,6 +413,10 @@ func (device *Device) Delete() error {
 	return err
 }
 
+/*
+  Activity
+*/
+
 // Activity represents a single activity for a user.
 type Activity struct {
 	Message string `json:"message" redis:"message"`
@@ -394,6 +449,22 @@ func (activity *Activity) Delete() error {
 	_, err = DB.Do("del", strings.Replace(key, "{{activity}}", activity.Time, -1))
 	return err
 }
+
+/*
+  Task
+*/
+
+// Task represents a single task for a user.
+type Task struct {
+	ID       int    `json:"id" redis:"id"`
+	Message  string `json:"message" redis:"message"`
+	Complete bool   `json:"complete" redis:"complete"`
+	User     *User  `json:"-" redis:"-"`
+}
+
+/*
+  Token
+*/
 
 // Token represents a single token for a user and device.
 type Token struct {

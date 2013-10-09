@@ -128,12 +128,9 @@ func Authenticate(rw http.ResponseWriter, req *http.Request) *User {
 				return nil
 			}
 
-			if !matches {
-				sendErr(http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return nil
+			if matches {
+				return user
 			}
-
-			return user
 		}
 	}
 

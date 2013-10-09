@@ -78,14 +78,24 @@ func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	tasks, err := DB.GetTasks(user.Name)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
 	activities, err := DB.GetActivities(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
-	msg := map[string]interface{}{"user": user, "devices": devices, "activities": activities}
-	res.Send(msg, http.StatusOK)
+	res.Send(map[string]interface{}{
+		"user":       user,
+		"devices":    devices,
+		"tasks":      tasks,
+		"activities": activities,
+	}, http.StatusOK)
 }
 
 func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
