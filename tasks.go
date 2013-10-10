@@ -4,25 +4,27 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/larzconwell/moln/httpextra"
 	"net/http"
+	"strconv"
 )
 
 func init() {
 	createTask := &Route{"CreateTask", "/tasks", []string{"POST"}, CreateTaskHandler}
 	getTasks := &Route{"GetTasks", "/tasks", []string{"GET"}, GetTasksHandler}
 	getTask := &Route{"GetTask", "/tasks/{id}", []string{"GET"}, GetTaskHandler}
+	updateTask := &Route{"UpdateTask", "/tasks/{id}", []string{"PUT"}, UpdateTaskHandler}
 	deleteTask := &Route{"DeleteTask", "/tasks/{id}", []string{"DELETE"}, DeleteTaskHandler}
 
-	Routes = append(Routes, createTask, getTasks, getTask, deleteTask)
+	Routes = append(Routes, createTask, getTasks, getTask, updateTask, deleteTask)
 }
 
 func CreateTaskHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
-	if user == nil {
+	params, ok := httpextra.ParseForm(rw, req)
+	if !ok {
 		return
 	}
 
-	params, ok := httpextra.ParseForm(rw, req)
-	if !ok {
+	user := Authenticate(rw, req)
+	if user == nil {
 		return
 	}
 
@@ -75,6 +77,64 @@ func GetTaskHandler(rw http.ResponseWriter, req *http.Request) {
 
 	if task == nil {
 		res.Send(map[string]string{"error": http.StatusText(http.StatusNotFound)}, http.StatusNotFound)
+		return
+	}
+
+	res.Send(task, http.StatusOK)
+}
+
+func UpdateTaskHandler(rw http.ResponseWriter, req *http.Request) {
+	params, ok := httpextra.ParseForm(rw, req)
+	if !ok {
+		return
+	}
+	_, messageGiven := params["message"]
+	_, completeGiven := params["complete"]
+	id := mux.Vars(req)["id"]
+
+	user := Authenticate(rw, req)
+	if user == nil {
+		return
+	}
+	res := &httpextra.Response{rw, req}
+
+	task, err := DB.GetTask(user.Name, id)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	if task == nil {
+		res.Send(map[string]string{"error": http.StatusText(http.StatusNotFound)}, http.StatusNotFound)
+		return
+	}
+	task.User = user
+
+	if !messageGiven && !completeGiven {
+		res.Send(task, http.StatusOK)
+		return
+	}
+
+	if messageGiven {
+		task.Message = params.Get("message")
+	}
+	if completeGiven {
+		complete, err := strconv.ParseBool(params.Get("complete"))
+		if err != nil {
+			complete = false
+		}
+
+		task.Complete = complete
+	}
+	errs, err := task.Validate()
+	ok = HandleValidations(rw, req, errs, err)
+	if !ok {
+		return
+	}
+
+	err = task.Save(false)
+	if err != nil {
+		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
 	}
 

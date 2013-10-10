@@ -16,13 +16,13 @@ func init() {
 }
 
 func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
-	if user == nil {
+	params, ok := httpextra.ParseForm(rw, req)
+	if !ok {
 		return
 	}
 
-	params, ok := httpextra.ParseForm(rw, req)
-	if !ok {
+	user := Authenticate(rw, req)
+	if user == nil {
 		return
 	}
 
