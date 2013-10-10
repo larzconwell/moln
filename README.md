@@ -10,7 +10,7 @@ Moln is a simple sync API server with features similar to OwnCloud, including mu
 - [] File sync
 - [] Calendar sync
 - [] Address book sync
-- [] Task manager
+- [DONE] Task manager
 
 ### Running and Deploying
 
