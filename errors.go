@@ -14,4 +14,6 @@ var (
 	ErrUserNameEmpty     = errors.New("User: name cannot be empty")
 	ErrUserPasswordEmpty = errors.New("User: password cannot be empty")
 	ErrUserAlreadyExists = errors.New("User: name already exists")
+
+	ErrTaskMessageEmpty = errors.New("Task: message cannot be empty")
 )

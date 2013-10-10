@@ -322,8 +322,8 @@ func (user *User) Validate(new bool) ([]string, error) {
 }
 
 // Save saves the user data.
-func (user *User) Save(hash bool) error {
-	if hash {
+func (user *User) Save(genHash bool) error {
+	if genHash {
 		pass, err := bcrypt.GenerateFromPassword([]byte(user.Password), -1)
 		if err != nil {
 			return err
@@ -382,8 +382,8 @@ func (device *Device) Validate(new bool) ([]string, error) {
 }
 
 // Save saves the device data.
-func (device *Device) Save(token bool) error {
-	if token {
+func (device *Device) Save(genToken bool) error {
+	if genToken {
 		tok, err := uuid.NewV5(uuid.NamespaceURL, []byte(device.User.Name+device.Name))
 		if err != nil {
 			return err
@@ -481,6 +481,50 @@ type Task struct {
 	Message  string `json:"message" redis:"message"`
 	Complete bool   `json:"complete" redis:"complete"`
 	User     *User  `json:"-" redis:"-"`
+}
+
+// Validate ensures the data is valid.
+func (task *Task) Validate() ([]string, error) {
+	return Validations(func() (error, error) {
+		if task.Message == "" {
+			return ErrTaskMessageEmpty, nil
+		}
+
+		return nil, nil
+	})
+}
+
+// Save saves the task data.
+func (task *Task) Save(genID bool) error {
+	if genID {
+		tasks, err := DB.GetTasks(task.User.Name)
+		if err != nil {
+			return err
+		}
+		largest := 0
+
+		for _, task := range tasks {
+			if task.ID > largest {
+				largest = task.ID
+			}
+		}
+
+		task.ID = largest + 1
+	}
+	id := strconv.Itoa(task.ID)
+
+	// Add to tasks set
+	key := strings.Replace(TasksKey, "{{user}}", task.User.Name, -1)
+	_, err := DB.Do("sadd", key, id)
+	if err != nil {
+		return err
+	}
+
+	// Add task hash
+	key = strings.Replace(TaskKey, "{{user}}", task.User.Name, -1)
+	key = strings.Replace(key, "{{task}}", id, -1)
+	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(task)...)
+	return err
 }
 
 // Delete removes the task data.
