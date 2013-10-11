@@ -31,7 +31,9 @@ func AddContentType(mime, extension, err string, marshal func(interface{}) ([]by
 
 // DefaultContentType returns the content type set to default, or if none are
 // set the first one is returned.
-func DefaultContentType() (contentType *ContentType) {
+func DefaultContentType() *ContentType {
+	var contentType *ContentType
+
 	for _, ct := range ContentTypes {
 		if ct.Default {
 			contentType = ct
@@ -46,11 +48,13 @@ func DefaultContentType() (contentType *ContentType) {
 		}
 	}
 
-	return
+	return contentType
 }
 
 // RequestContentType gets an acceptable response format from a request.
-func RequestContentType(req *http.Request) (contentType *ContentType) {
+func RequestContentType(req *http.Request) *ContentType {
+	var contentType *ContentType
+
 	ext := path.Ext(req.URL.Path)
 	if ext == "." {
 		ext = ""
@@ -64,7 +68,7 @@ func RequestContentType(req *http.Request) (contentType *ContentType) {
 				break
 			}
 		}
-		return
+		return contentType
 	}
 
 	// Check through each accept item and handle items with
@@ -125,7 +129,7 @@ func RequestContentType(req *http.Request) (contentType *ContentType) {
 				break
 			}
 		}
-		return
+		return contentType
 	}
 
 	// No extension and no accept header, so just get the default
