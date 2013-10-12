@@ -1,5 +1,6 @@
 {
   "LogDir": "/var/log/moln",
   "DBAddr": "/tmp/redis.sock",
-  "DBNetwork": "unix"
+  "DBNetwork": "unix",
+  "DBMaxIdle": 30
 }

@@ -1,4 +1,5 @@
 {
-  "MaxTimeoutStr": "2s",
+  "DBMaxTimeoutStr": "2s",
+  "ServerMaxTimeoutStr": "4s",
   "ServerAddr": ":3000"
 }

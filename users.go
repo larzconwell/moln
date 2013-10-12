@@ -21,15 +21,17 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 	_, deviceGiven := params["device"]
 	res := &httpextra.Response{ContentTypes, rw, req}
+	conn := Pool.Get()
+	defer conn.Close()
 
-	user := &User{params.Get("name"), params.Get("password")}
+	user := &User{conn, params.Get("name"), params.Get("password")}
 	errs, err := user.Validate(true)
 	ok = HandleValidations(rw, req, errs, err)
 	if !ok {
 		return
 	}
 
-	device := &Device{Name: params.Get("device"), User: user}
+	device := &Device{Conn: conn, Name: params.Get("device"), User: user}
 	if deviceGiven {
 		// Set new to false, since we don't need to check for existance
 		errs, err := device.Validate(false)
@@ -52,7 +54,7 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		activity := &Activity{Message: "Created device " + device.Name, User: user}
+		activity := &Activity{Conn: conn, Message: "Created device " + device.Name, User: user}
 		err = activity.Save()
 		if err != nil {
 			res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
@@ -66,25 +68,28 @@ func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
+	conn := Pool.Get()
+	defer conn.Close()
+
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
 	res := &httpextra.Response{ContentTypes, rw, req}
 
-	devices, err := DB.GetDevices(user.Name)
+	devices, err := conn.GetDevices(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
-	tasks, err := DB.GetTasks(user.Name)
+	tasks, err := conn.GetTasks(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
-	activities, err := DB.GetActivities(user.Name)
+	activities, err := conn.GetActivities(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
@@ -104,8 +109,10 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	_, passwordGiven := params["password"]
+	conn := Pool.Get()
+	defer conn.Close()
 
-	user := Authenticate(rw, req)
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
@@ -129,7 +136,7 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	activity := &Activity{Message: "Updated user", User: user}
+	activity := &Activity{Conn: conn, Message: "Updated user", User: user}
 	err = activity.Save()
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
@@ -140,25 +147,28 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
+	conn := Pool.Get()
+	defer conn.Close()
+
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
 	res := &httpextra.Response{ContentTypes, rw, req}
 
-	err := DB.DeleteActivities(user.Name)
+	err := conn.DeleteActivities(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
-	err = DB.DeleteTasks(user.Name)
+	err = conn.DeleteTasks(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
-	err = DB.DeleteDevices(user.Name)
+	err = conn.DeleteDevices(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return

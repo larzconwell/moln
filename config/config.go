@@ -16,14 +16,17 @@ type TLS struct {
 
 // Config describes the options for Moln.
 type Config struct {
-	LogDir        string
-	DBAddr        string
-	DBNetwork     string
-	ServerAddr    string
-	ServerNetwork string
-	MaxTimeoutStr string
-	MaxTimeout    time.Duration
-	TLS           *TLS
+	LogDir              string
+	DBAddr              string
+	DBNetwork           string
+	DBMaxIdle           int
+	DBMaxTimeoutStr     string
+	DBMaxTimeout        time.Duration
+	ServerAddr          string
+	ServerNetwork       string
+	ServerMaxTimeoutStr string
+	ServerMaxTimeout    time.Duration
+	TLS                 *TLS
 }
 
 // ReadFiles reads the given JSON config files and returns the combined config.
@@ -42,6 +45,7 @@ func ReadFiles(files ...string) (*Config, error) {
 		decoder.Decode(config)
 	}
 
-	config.MaxTimeout, err = time.ParseDuration(config.MaxTimeoutStr)
+	config.DBMaxTimeout, err = time.ParseDuration(config.DBMaxTimeoutStr)
+	config.ServerMaxTimeout, err = time.ParseDuration(config.ServerMaxTimeoutStr)
 	return config, err
 }

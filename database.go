@@ -21,46 +21,72 @@ var (
 	TokenKey      = "tokens:{{token}}"
 )
 
-// DBConn wraps redis.Conn that includes methods for data management.
-type DBConn struct {
+// connect creates a redis.Conn for pool connections.
+func connect() (redis.Conn, error) {
+	return redis.DialTimeout(Config.DBNetwork, Config.DBAddr, Config.DBMaxTimeout,
+		Config.DBMaxTimeout, Config.DBMaxTimeout)
+}
+
+// ping is used to check if the connection is responding.
+func ping(conn redis.Conn, t time.Time) error {
+	_, err := conn.Do("ping")
+	return err
+}
+
+// DBPool is a wrapped redis.Pool that gets a Conn instead of redis.Conn.
+type DBPool struct {
+	Pool *redis.Pool
+}
+
+// NewDBPool creates a new redis pool for requests.
+func NewDBPool() *DBPool {
+	pool := redis.NewPool(connect, Config.DBMaxIdle)
+	pool.IdleTimeout = Config.DBMaxTimeout
+	pool.TestOnBorrow = ping
+
+	return &DBPool{pool}
+}
+
+// Get gets a connection and wraps it a Conn.
+func (pool *DBPool) Get() *Conn {
+	return &Conn{pool.Pool.Get()}
+}
+
+// Close delegates to the redis.Pool.Close.
+func (pool *DBPool) Close() error {
+	return pool.Pool.Close()
+}
+
+// Conn wraps redis.Conn adding methods for data management.
+type Conn struct {
 	redis.Conn
 }
 
-// DBDialTimeout creates a database connection that has timeouts.
-func DBDialTimeout(network, addr string, cTimeout, rTimeout, wTimeout time.Duration) (*DBConn, error) {
-	db, err := redis.DialTimeout(network, addr, cTimeout, rTimeout, wTimeout)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DBConn{db}, nil
-}
-
-// Exists is a generic check for any key.
-func (db *DBConn) Exists(key string) (bool, error) {
-	return redis.Bool(db.Do("exists", key))
+// exists is a generic check for any key.
+func (conn *Conn) exists(key string) (bool, error) {
+	return redis.Bool(conn.Do("exists", key))
 }
 
 // UserExists checks if a user exists.
-func (db *DBConn) UserExists(user string) (bool, error) {
-	return db.Exists(strings.Replace(UserKey, "{{user}}", user, -1))
+func (conn *Conn) UserExists(user string) (bool, error) {
+	return conn.exists(strings.Replace(UserKey, "{{user}}", user, -1))
 }
 
 // DeviceExists checks if a device exists.
-func (db *DBConn) DeviceExists(user, device string) (bool, error) {
+func (conn *Conn) DeviceExists(user, device string) (bool, error) {
 	key := strings.Replace(DeviceKey, "{{user}}", user, -1)
 
-	return db.Exists(strings.Replace(key, "{{device}}", device, -1))
+	return conn.exists(strings.Replace(key, "{{device}}", device, -1))
 }
 
 // GetUser retrieves a user by their name.
-func (db *DBConn) GetUser(name string) (*User, error) {
-	reply, err := redis.Values(db.Do("hgetall", strings.Replace(UserKey, "{{user}}", name, -1)))
+func (conn *Conn) GetUser(name string) (*User, error) {
+	reply, err := redis.Values(conn.Do("hgetall", strings.Replace(UserKey, "{{user}}", name, -1)))
 	if err != nil {
 		return nil, err
 	}
 
-	user := new(User)
+	user := &User{Conn: conn}
 	err = redis.ScanStruct(reply, user)
 	if err != nil {
 		user = nil
@@ -72,9 +98,9 @@ func (db *DBConn) GetUser(name string) (*User, error) {
 	return user, err
 }
 
-// GetUserByToken retrieves a user by their name.
-func (db *DBConn) GetUserByToken(token string) (*User, error) {
-	reply, err := redis.Values(db.Do("hgetall", strings.Replace(TokenKey, "{{token}}", token, -1)))
+// GetUserByToken retrieves a user by a token.
+func (conn *Conn) GetUserByToken(token string) (*User, error) {
+	reply, err := redis.Values(conn.Do("hgetall", strings.Replace(TokenKey, "{{token}}", token, -1)))
 	if err != nil {
 		return nil, err
 	}
@@ -88,19 +114,19 @@ func (db *DBConn) GetUserByToken(token string) (*User, error) {
 		return nil, nil
 	}
 
-	return db.GetUser(tok.User)
+	return conn.GetUser(tok.User)
 }
 
 // GetDevices retrieves a users devices.
-func (db *DBConn) GetDevices(user string) ([]*Device, error) {
-	reply, err := redis.Strings(db.Do("smembers", strings.Replace(DevicesKey, "{{user}}", user, -1)))
+func (conn *Conn) GetDevices(user string) ([]*Device, error) {
+	reply, err := redis.Strings(conn.Do("smembers", strings.Replace(DevicesKey, "{{user}}", user, -1)))
 	if err != nil {
 		return nil, err
 	}
 
 	devices := make([]*Device, 0)
 	for _, item := range reply {
-		device, err := db.GetDevice(user, item)
+		device, err := conn.GetDevice(user, item)
 		if err != nil {
 			return nil, err
 		}
@@ -112,15 +138,15 @@ func (db *DBConn) GetDevices(user string) ([]*Device, error) {
 }
 
 // GetDevice retrieves a device.
-func (db *DBConn) GetDevice(user, name string) (*Device, error) {
+func (conn *Conn) GetDevice(user, name string) (*Device, error) {
 	key := strings.Replace(DeviceKey, "{{user}}", user, -1)
 
-	reply, err := redis.Values(db.Do("hgetall", strings.Replace(key, "{{device}}", name, -1)))
+	reply, err := redis.Values(conn.Do("hgetall", strings.Replace(key, "{{device}}", name, -1)))
 	if err != nil {
 		return nil, err
 	}
 
-	device := new(Device)
+	device := &Device{Conn: conn}
 	err = redis.ScanStruct(reply, device)
 	if err != nil {
 		device = nil
@@ -133,17 +159,17 @@ func (db *DBConn) GetDevice(user, name string) (*Device, error) {
 }
 
 // GetActivities retrieves a users activities.
-func (db *DBConn) GetActivities(user string) ([]*Activity, error) {
+func (conn *Conn) GetActivities(user string) ([]*Activity, error) {
 	key := strings.Replace(ActivitiesKey, "{{user}}", user, -1)
 
-	reply, err := redis.Strings(db.Do("lrange", key, 0, -1))
+	reply, err := redis.Strings(conn.Do("lrange", key, 0, -1))
 	if err != nil {
 		return nil, err
 	}
 
 	activities := make([]*Activity, 0)
 	for _, item := range reply {
-		activity, err := db.GetActivity(user, item)
+		activity, err := conn.GetActivity(user, item)
 		if err != nil {
 			return nil, err
 		}
@@ -155,15 +181,15 @@ func (db *DBConn) GetActivities(user string) ([]*Activity, error) {
 }
 
 // GetActivity retrieves a activity.
-func (db *DBConn) GetActivity(user, time string) (*Activity, error) {
+func (conn *Conn) GetActivity(user, time string) (*Activity, error) {
 	key := strings.Replace(ActivityKey, "{{user}}", user, -1)
 
-	reply, err := redis.Values(db.Do("hgetall", strings.Replace(key, "{{activity}}", time, -1)))
+	reply, err := redis.Values(conn.Do("hgetall", strings.Replace(key, "{{activity}}", time, -1)))
 	if err != nil {
 		return nil, err
 	}
 
-	activity := new(Activity)
+	activity := &Activity{Conn: conn}
 	err = redis.ScanStruct(reply, activity)
 	if err != nil {
 		activity = nil
@@ -176,15 +202,15 @@ func (db *DBConn) GetActivity(user, time string) (*Activity, error) {
 }
 
 // GetTasks retrieves a users tasks.
-func (db *DBConn) GetTasks(user string) ([]*Task, error) {
-	reply, err := redis.Strings(db.Do("smembers", strings.Replace(TasksKey, "{{user}}", user, -1)))
+func (conn *Conn) GetTasks(user string) ([]*Task, error) {
+	reply, err := redis.Strings(conn.Do("smembers", strings.Replace(TasksKey, "{{user}}", user, -1)))
 	if err != nil {
 		return nil, err
 	}
 
 	tasks := make([]*Task, 0)
 	for _, item := range reply {
-		task, err := db.GetTask(user, item)
+		task, err := conn.GetTask(user, item)
 		if err != nil {
 			return nil, err
 		}
@@ -196,15 +222,15 @@ func (db *DBConn) GetTasks(user string) ([]*Task, error) {
 }
 
 // GetTask retrieves a task.
-func (db *DBConn) GetTask(user, id string) (*Task, error) {
+func (conn *Conn) GetTask(user, id string) (*Task, error) {
 	key := strings.Replace(TaskKey, "{{user}}", user, -1)
 
-	reply, err := redis.Values(db.Do("hgetall", strings.Replace(key, "{{task}}", id, -1)))
+	reply, err := redis.Values(conn.Do("hgetall", strings.Replace(key, "{{task}}", id, -1)))
 	if err != nil {
 		return nil, err
 	}
 
-	task := new(Task)
+	task := &Task{Conn: conn}
 	err = redis.ScanStruct(reply, task)
 	if err != nil {
 		task = nil
@@ -217,8 +243,8 @@ func (db *DBConn) GetTask(user, id string) (*Task, error) {
 }
 
 // DeleteDevices deletes all a users devices
-func (db *DBConn) DeleteDevices(name string) error {
-	devices, err := db.GetDevices(name)
+func (conn *Conn) DeleteDevices(name string) error {
+	devices, err := conn.GetDevices(name)
 	if err != nil {
 		return err
 	}
@@ -237,8 +263,8 @@ func (db *DBConn) DeleteDevices(name string) error {
 }
 
 // DeleteActivities deletes all a users activities
-func (db *DBConn) DeleteActivities(name string) error {
-	activities, err := db.GetActivities(name)
+func (conn *Conn) DeleteActivities(name string) error {
+	activities, err := conn.GetActivities(name)
 	if err != nil {
 		return err
 	}
@@ -255,13 +281,13 @@ func (db *DBConn) DeleteActivities(name string) error {
 	}
 
 	// Delete activity list here, since we can't remove list items individually easily
-	_, err = db.Do("del", strings.Replace(ActivitiesKey, "{{user}}", name, -1))
+	_, err = conn.Do("del", strings.Replace(ActivitiesKey, "{{user}}", name, -1))
 	return err
 }
 
 // DeleteTasks deletes all a users tasks
-func (db *DBConn) DeleteTasks(name string) error {
-	tasks, err := db.GetTasks(name)
+func (conn *Conn) DeleteTasks(name string) error {
+	tasks, err := conn.GetTasks(name)
 	if err != nil {
 		return err
 	}
@@ -283,13 +309,14 @@ func (db *DBConn) DeleteTasks(name string) error {
   User
 */
 
-// User represents a single users data.
+// User represents a single users hash data.
 type User struct {
+	*Conn    `json:"-" redis:"-"`
 	Name     string `json:"name" redis:"name"`
 	Password string `json:"-" redis:"password"`
 }
 
-// Validate ensures the data is valid.
+// Validate ensures the data is valid, if new it'll check if exists.
 func (user *User) Validate(new bool) ([]string, error) {
 	return Validations(func() (error, error) {
 		if user.Name == "" {
@@ -308,7 +335,7 @@ func (user *User) Validate(new bool) ([]string, error) {
 			return nil, nil
 		}
 
-		exists, err := DB.UserExists(user.Name)
+		exists, err := user.UserExists(user.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -321,7 +348,7 @@ func (user *User) Validate(new bool) ([]string, error) {
 	})
 }
 
-// Save saves the user data.
+// Save saves the user data, hashing the password if needed.
 func (user *User) Save(genHash bool) error {
 	if genHash {
 		pass, err := bcrypt.GenerateFromPassword([]byte(user.Password), -1)
@@ -333,13 +360,13 @@ func (user *User) Save(genHash bool) error {
 	}
 
 	key := strings.Replace(UserKey, "{{user}}", user.Name, -1)
-	_, err := DB.Do("hmset", redis.Args{}.Add(key).AddFlat(user)...)
+	_, err := user.Do("hmset", redis.Args{}.Add(key).AddFlat(user)...)
 	return err
 }
 
 // Delete removes the user data.
 func (user *User) Delete() error {
-	_, err := DB.Do("del", strings.Replace(UserKey, "{{user}}", user.Name, -1))
+	_, err := user.Do("del", strings.Replace(UserKey, "{{user}}", user.Name, -1))
 
 	return err
 }
@@ -348,14 +375,15 @@ func (user *User) Delete() error {
   Device
 */
 
-// Device represents a single device for a user.
+// Device represents a single device hash for a user.
 type Device struct {
+	*Conn `json:"-" redis:"-"`
 	Name  string `json:"name" redis:"name"`
 	Token string `json:"token" redis:"token"`
 	User  *User  `json:"-" redis:"-"`
 }
 
-// Validate ensures the data is valid.
+// Validate ensures the data is valid, if new it'll check if it exists.
 func (device *Device) Validate(new bool) ([]string, error) {
 	return Validations(func() (error, error) {
 		if device.Name == "" {
@@ -368,7 +396,7 @@ func (device *Device) Validate(new bool) ([]string, error) {
 			return nil, nil
 		}
 
-		exists, err := DB.DeviceExists(device.User.Name, device.Name)
+		exists, err := device.DeviceExists(device.User.Name, device.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -381,7 +409,7 @@ func (device *Device) Validate(new bool) ([]string, error) {
 	})
 }
 
-// Save saves the device data.
+// Save saves the device data, generating a token if needed.
 func (device *Device) Save(genToken bool) error {
 	if genToken {
 		tok, err := uuid.NewV5(uuid.NamespaceURL, []byte(device.User.Name+device.Name))
@@ -394,7 +422,7 @@ func (device *Device) Save(genToken bool) error {
 
 	// Add to device set
 	key := strings.Replace(DevicesKey, "{{user}}", device.User.Name, -1)
-	_, err := DB.Do("sadd", key, device.Name)
+	_, err := device.Do("sadd", key, device.Name)
 	if err != nil {
 		return err
 	}
@@ -402,35 +430,35 @@ func (device *Device) Save(genToken bool) error {
 	// Add device hash
 	key = strings.Replace(DeviceKey, "{{user}}", device.User.Name, -1)
 	key = strings.Replace(key, "{{device}}", device.Name, -1)
-	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(device)...)
+	_, err = device.Do("hmset", redis.Args{}.Add(key).AddFlat(device)...)
 	if err != nil {
 		return err
 	}
 
 	// Add token hash
 	key = strings.Replace(TokenKey, "{{token}}", device.Token, -1)
-	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(&Token{device.User.Name, device.Name})...)
+	_, err = device.Do("hmset", redis.Args{}.Add(key).AddFlat(&Token{device.User.Name, device.Name})...)
 	return err
 }
 
 // Delete removes the device data.
 func (device *Device) Delete() error {
 	// Remove token hash
-	_, err := DB.Do("del", strings.Replace(TokenKey, "{{token}}", device.Token, -1))
+	_, err := device.Do("del", strings.Replace(TokenKey, "{{token}}", device.Token, -1))
 	if err != nil {
 		return err
 	}
 
 	// Remove device hash
 	key := strings.Replace(DeviceKey, "{{user}}", device.User.Name, -1)
-	_, err = DB.Do("del", strings.Replace(key, "{{device}}", device.Name, -1))
+	_, err = device.Do("del", strings.Replace(key, "{{device}}", device.Name, -1))
 	if err != nil {
 		return err
 	}
 
 	// Remove from device set
 	key = strings.Replace(DevicesKey, "{{user}}", device.User.Name, -1)
-	_, err = DB.Do("srem", key, device.Name)
+	_, err = device.Do("srem", key, device.Name)
 	return err
 }
 
@@ -438,8 +466,9 @@ func (device *Device) Delete() error {
   Activity
 */
 
-// Activity represents a single activity for a user.
+// Activity represents a single activity hash for a user.
 type Activity struct {
+	*Conn   `json:"-" redis:"-"`
 	Message string `json:"message" redis:"message"`
 	Time    string `json:"time" redis:"time"`
 	User    *User  `json:"-" redis:"-"`
@@ -451,7 +480,7 @@ func (activity *Activity) Save() error {
 
 	// Add to activity list
 	key := strings.Replace(ActivitiesKey, "{{user}}", activity.User.Name, -1)
-	_, err := DB.Do("lpush", key, activity.Time)
+	_, err := activity.Do("lpush", key, activity.Time)
 	if err != nil {
 		return err
 	}
@@ -459,15 +488,17 @@ func (activity *Activity) Save() error {
 	// Add activity hash
 	key = strings.Replace(ActivityKey, "{{user}}", activity.User.Name, -1)
 	key = strings.Replace(key, "{{activity}}", activity.Time, -1)
-	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(activity)...)
+	_, err = activity.Do("hmset", redis.Args{}.Add(key).AddFlat(activity)...)
 	return err
 }
 
 // Delete removes the activity data.
 func (activity *Activity) Delete() error {
-	// Remove activity hash
+	// Unfortunately there's no easy way to remove the list item...so only use this if you plan
+	// to remove the list item yourself or deleting all the activities.
+
 	key := strings.Replace(ActivityKey, "{{user}}", activity.User.Name, -1)
-	_, err = DB.Do("del", strings.Replace(key, "{{activity}}", activity.Time, -1))
+	_, err = activity.Do("del", strings.Replace(key, "{{activity}}", activity.Time, -1))
 	return err
 }
 
@@ -475,8 +506,9 @@ func (activity *Activity) Delete() error {
   Task
 */
 
-// Task represents a single task for a user.
+// Task represents a single task hash for a user.
 type Task struct {
+	*Conn    `json:"-" redis:"-"`
 	ID       int    `json:"id" redis:"id"`
 	Message  string `json:"message" redis:"message"`
 	Complete bool   `json:"complete" redis:"complete"`
@@ -494,10 +526,10 @@ func (task *Task) Validate() ([]string, error) {
 	})
 }
 
-// Save saves the task data.
+// Save saves the task data, generating an id if needed.
 func (task *Task) Save(genID bool) error {
 	if genID {
-		tasks, err := DB.GetTasks(task.User.Name)
+		tasks, err := task.GetTasks(task.User.Name)
 		if err != nil {
 			return err
 		}
@@ -515,7 +547,7 @@ func (task *Task) Save(genID bool) error {
 
 	// Add to tasks set
 	key := strings.Replace(TasksKey, "{{user}}", task.User.Name, -1)
-	_, err := DB.Do("sadd", key, id)
+	_, err := task.Do("sadd", key, id)
 	if err != nil {
 		return err
 	}
@@ -523,7 +555,7 @@ func (task *Task) Save(genID bool) error {
 	// Add task hash
 	key = strings.Replace(TaskKey, "{{user}}", task.User.Name, -1)
 	key = strings.Replace(key, "{{task}}", id, -1)
-	_, err = DB.Do("hmset", redis.Args{}.Add(key).AddFlat(task)...)
+	_, err = task.Do("hmset", redis.Args{}.Add(key).AddFlat(task)...)
 	return err
 }
 
@@ -533,14 +565,14 @@ func (task *Task) Delete() error {
 
 	// Remove task hash
 	key := strings.Replace(TaskKey, "{{user}}", task.User.Name, -1)
-	_, err = DB.Do("del", strings.Replace(key, "{{task}}", id, -1))
+	_, err = task.Do("del", strings.Replace(key, "{{task}}", id, -1))
 	if err != nil {
 		return err
 	}
 
 	// Remove from task set
 	key = strings.Replace(TasksKey, "{{user}}", task.User.Name, -1)
-	_, err = DB.Do("srem", key, id)
+	_, err = task.Do("srem", key, id)
 	return err
 }
 
@@ -548,7 +580,7 @@ func (task *Task) Delete() error {
   Token
 */
 
-// Token represents a single token for a user and device.
+// Token represents a single token hash for a user and device.
 type Token struct {
 	User   string `redis:"user"`
 	Device string `redis:"device"`

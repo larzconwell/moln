@@ -1,5 +1,6 @@
 {
   "LogDir": "logs",
   "DBAddr": ":6379",
-  "DBNetwork": "tcp"
+  "DBNetwork": "tcp",
+  "DBMaxIdle": 1
 }

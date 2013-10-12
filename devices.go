@@ -20,13 +20,15 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	if !ok {
 		return
 	}
+	conn := Pool.Get()
+	defer conn.Close()
 
-	user := Authenticate(rw, req)
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
 
-	device := &Device{Name: params.Get("name"), User: user}
+	device := &Device{Conn: conn, Name: params.Get("name"), User: user}
 	errs, err := device.Validate(true)
 	ok = HandleValidations(rw, req, errs, err)
 	if !ok {
@@ -40,7 +42,7 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	activity := &Activity{Message: "Created device " + device.Name, User: user}
+	activity := &Activity{Conn: conn, Message: "Created device " + device.Name, User: user}
 	err = activity.Save()
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
@@ -51,13 +53,16 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func GetDevicesHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
+	conn := Pool.Get()
+	defer conn.Close()
+
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
 	res := &httpextra.Response{ContentTypes, rw, req}
 
-	devices, err := DB.GetDevices(user.Name)
+	devices, err := conn.GetDevices(user.Name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
@@ -67,14 +72,17 @@ func GetDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func GetDeviceHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
+	conn := Pool.Get()
+	defer conn.Close()
+
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
 	name := mux.Vars(req)["name"]
 	res := &httpextra.Response{ContentTypes, rw, req}
 
-	device, err := DB.GetDevice(user.Name, name)
+	device, err := conn.GetDevice(user.Name, name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
@@ -89,14 +97,17 @@ func GetDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
-	user := Authenticate(rw, req)
+	conn := Pool.Get()
+	defer conn.Close()
+
+	user := Authenticate(conn, rw, req)
 	if user == nil {
 		return
 	}
 	name := mux.Vars(req)["name"]
 	res := &httpextra.Response{ContentTypes, rw, req}
 
-	device, err := DB.GetDevice(user.Name, name)
+	device, err := conn.GetDevice(user.Name, name)
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)
 		return
@@ -114,7 +125,7 @@ func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	activity := &Activity{Message: "Deleted device " + device.Name, User: user}
+	activity := &Activity{Conn: conn, Message: "Deleted device " + device.Name, User: user}
 	err = activity.Save()
 	if err != nil {
 		res.Send(map[string]string{"error": err.Error()}, http.StatusInternalServerError)

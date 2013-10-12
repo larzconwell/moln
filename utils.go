@@ -60,7 +60,7 @@ func HandleValidations(rw http.ResponseWriter, req *http.Request, errs []string,
 }
 
 // Authenticate authenticates the request handling responses for required auth.
-func Authenticate(rw http.ResponseWriter, req *http.Request) *User {
+func Authenticate(conn *Conn, rw http.ResponseWriter, req *http.Request) *User {
 	authorization := req.Header.Get("Authorization")
 	authType := ""
 	authValue := ""
@@ -90,7 +90,7 @@ func Authenticate(rw http.ResponseWriter, req *http.Request) *User {
 	authValue = authSplit[1]
 
 	if authType == "token" {
-		user, err := DB.GetUserByToken(authValue)
+		user, err := conn.GetUserByToken(authValue)
 		if err != nil {
 			sendErr(err.Error(), http.StatusInternalServerError)
 			return nil
@@ -115,7 +115,7 @@ func Authenticate(rw http.ResponseWriter, req *http.Request) *User {
 			return nil
 		}
 
-		user, err := DB.GetUser(name)
+		user, err := conn.GetUser(name)
 		if err != nil {
 			sendErr(err.Error(), http.StatusInternalServerError)
 			return nil
