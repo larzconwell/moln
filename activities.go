@@ -16,7 +16,7 @@ func GetActivitiesHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	activities, err := DB.GetActivities(user.Name)
 	if err != nil {

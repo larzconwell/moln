@@ -16,7 +16,7 @@ func init() {
 }
 
 func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
-	params, ok := httpextra.ParseForm(rw, req)
+	params, ok := httpextra.ParseForm(ContentTypes, rw, req)
 	if !ok {
 		return
 	}
@@ -32,7 +32,7 @@ func CreateDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 	if !ok {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	err = device.Save(true)
 	if err != nil {
@@ -55,7 +55,7 @@ func GetDevicesHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	devices, err := DB.GetDevices(user.Name)
 	if err != nil {
@@ -72,7 +72,7 @@ func GetDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	name := mux.Vars(req)["name"]
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	device, err := DB.GetDevice(user.Name, name)
 	if err != nil {
@@ -94,7 +94,7 @@ func DeleteDeviceHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	name := mux.Vars(req)["name"]
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	device, err := DB.GetDevice(user.Name, name)
 	if err != nil {

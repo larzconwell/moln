@@ -10,11 +10,18 @@ import (
 	"time"
 )
 
-// NotFoundHandler is a simple 404 http.Handler.
-var NotFoundHandler = http.HandlerFunc(notFoundHandler)
+// NotFoundHandler is a http.Handler responding to 404s.
+type NotFoundHandler struct {
+	ContentTypes map[string]*ContentType
+}
 
-func notFoundHandler(rw http.ResponseWriter, req *http.Request) {
-	res := &Response{rw, req}
+func NewNotFoundHandler(contentTypes map[string]*ContentType) *NotFoundHandler {
+	return &NotFoundHandler{contentTypes}
+}
+
+// ServeHTTP responds with 404
+func (nfh *NotFoundHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	res := &Response{nfh.ContentTypes, rw, req}
 	res.Send(map[string]string{"error": http.StatusText(http.StatusNotFound)}, http.StatusNotFound)
 }
 
@@ -75,20 +82,21 @@ func (lh *LogHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // ContentTypeHandler is a http.Handler that ensures unsupported formats
 // have the correct response.
 type ContentTypeHandler struct {
-	Handler http.Handler
+	ContentTypes map[string]*ContentType
+	Handler      http.Handler
 }
 
-func NewContentTypeHandler(handler http.Handler) *ContentTypeHandler {
-	return &ContentTypeHandler{handler}
+func NewContentTypeHandler(contentTypes map[string]*ContentType, handler http.Handler) *ContentTypeHandler {
+	return &ContentTypeHandler{contentTypes, handler}
 }
 
 // ServeHTTP calls the handler if a requested response content type is supported,
 // otherwise a 406 is returned.
 func (cth *ContentTypeHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if RequestContentType(req) != nil {
+	if RequestContentType(cth.ContentTypes, req) != nil {
 		cth.Handler.ServeHTTP(rw, req)
 	} else {
-		res := &Response{rw, req}
+		res := &Response{cth.ContentTypes, rw, req}
 		res.SendDefault(map[string]string{"error": http.StatusText(http.StatusNotAcceptable)},
 			http.StatusNotAcceptable)
 	}

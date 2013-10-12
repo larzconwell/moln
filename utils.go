@@ -43,7 +43,7 @@ func HandleValidations(rw http.ResponseWriter, req *http.Request, errs []string,
 	if errs != nil || err != nil {
 		msg := make(map[string]interface{})
 		status := http.StatusBadRequest
-		res := &httpextra.Response{rw, req}
+		res := &httpextra.Response{ContentTypes, rw, req}
 
 		if err != nil {
 			msg["error"] = err.Error()
@@ -70,7 +70,7 @@ func Authenticate(rw http.ResponseWriter, req *http.Request) *User {
 			rw.Header().Set("WWW-Authenticate", "Token")
 		}
 
-		res := &httpextra.Response{rw, req}
+		res := &httpextra.Response{ContentTypes, rw, req}
 		res.Send(map[string]string{"error": err}, status)
 	}
 

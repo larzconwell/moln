@@ -15,12 +15,12 @@ func init() {
 }
 
 func CreateUserHandler(rw http.ResponseWriter, req *http.Request) {
-	params, ok := httpextra.ParseForm(rw, req)
+	params, ok := httpextra.ParseForm(ContentTypes, rw, req)
 	if !ok {
 		return
 	}
 	_, deviceGiven := params["device"]
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	user := &User{params.Get("name"), params.Get("password")}
 	errs, err := user.Validate(true)
@@ -70,7 +70,7 @@ func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	devices, err := DB.GetDevices(user.Name)
 	if err != nil {
@@ -99,7 +99,7 @@ func GetUserHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
-	params, ok := httpextra.ParseForm(rw, req)
+	params, ok := httpextra.ParseForm(ContentTypes, rw, req)
 	if !ok {
 		return
 	}
@@ -109,7 +109,7 @@ func UpdateUserHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	if !passwordGiven {
 		res.Send(user, http.StatusOK)
@@ -144,7 +144,7 @@ func DeleteUserHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	err := DB.DeleteActivities(user.Name)
 	if err != nil {

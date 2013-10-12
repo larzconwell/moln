@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-// ContentTypes is a map of key value items that are used to parse
-// a response format.
-var ContentTypes = make(map[string]*ContentType)
-
 // ContentType represents a single content type that includes an extension,
 // a error message, and if it's the default.
 type ContentType struct {
@@ -20,21 +16,12 @@ type ContentType struct {
 	Default   bool
 }
 
-// AddContentType adds a new content type to the list of content types.
-func AddContentType(mime, extension, err string, marshal func(interface{}) ([]byte, error), def bool) *ContentType {
-	ct := &ContentType{mime, extension, err, marshal, def}
-
-	ContentTypes[mime] = ct
-
-	return ct
-}
-
 // DefaultContentType returns the content type set to default, or if none are
 // set the first one is returned.
-func DefaultContentType() *ContentType {
+func DefaultContentType(contentTypes map[string]*ContentType) *ContentType {
 	var contentType *ContentType
 
-	for _, ct := range ContentTypes {
+	for _, ct := range contentTypes {
 		if ct.Default {
 			contentType = ct
 			break
@@ -42,7 +29,7 @@ func DefaultContentType() *ContentType {
 	}
 
 	if contentType == nil {
-		for _, ct := range ContentTypes {
+		for _, ct := range contentTypes {
 			contentType = ct
 			break
 		}
@@ -52,7 +39,7 @@ func DefaultContentType() *ContentType {
 }
 
 // RequestContentType gets an acceptable response format from a request.
-func RequestContentType(req *http.Request) *ContentType {
+func RequestContentType(contentTypes map[string]*ContentType, req *http.Request) *ContentType {
 	var contentType *ContentType
 
 	ext := path.Ext(req.URL.Path)
@@ -62,7 +49,7 @@ func RequestContentType(req *http.Request) *ContentType {
 
 	// Check if the extension matches a content type
 	if ext != "" {
-		for _, ct := range ContentTypes {
+		for _, ct := range contentTypes {
 			if ct.Extension == ext {
 				contentType = ct
 				break
@@ -84,7 +71,7 @@ func RequestContentType(req *http.Request) *ContentType {
 			params := strings.Split(t, ";")
 			t = params[0]
 
-			ct, ok := ContentTypes[t]
+			ct, ok := contentTypes[t]
 			if ok {
 				contentType = ct
 				break
@@ -92,7 +79,7 @@ func RequestContentType(req *http.Request) *ContentType {
 
 			// Check for wildcards
 			if t == "*/*" {
-				for _, ct := range ContentTypes {
+				for _, ct := range contentTypes {
 					contentType = ct
 					break
 				}
@@ -104,12 +91,12 @@ func RequestContentType(req *http.Request) *ContentType {
 				continue
 			}
 
-			for ct, _ := range ContentTypes {
+			for ct, _ := range contentTypes {
 				ctSplit := strings.Split(ct, "/")
 
 				if (params[0] == "*" && params[1] == ctSplit[1]) ||
 					(params[1] == "*" && params[0] == ctSplit[0]) {
-					contentType = ContentTypes[ct]
+					contentType = contentTypes[ct]
 					break
 				}
 			}
@@ -133,5 +120,5 @@ func RequestContentType(req *http.Request) *ContentType {
 	}
 
 	// No extension and no accept header, so just get the default
-	return DefaultContentType()
+	return DefaultContentType(contentTypes)
 }

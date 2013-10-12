@@ -18,7 +18,7 @@ func init() {
 }
 
 func CreateTaskHandler(rw http.ResponseWriter, req *http.Request) {
-	params, ok := httpextra.ParseForm(rw, req)
+	params, ok := httpextra.ParseForm(ContentTypes, rw, req)
 	if !ok {
 		return
 	}
@@ -34,7 +34,7 @@ func CreateTaskHandler(rw http.ResponseWriter, req *http.Request) {
 	if !ok {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	err = task.Save(true)
 	if err != nil {
@@ -50,7 +50,7 @@ func GetTasksHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	tasks, err := DB.GetTasks(user.Name)
 	if err != nil {
@@ -67,7 +67,7 @@ func GetTaskHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := mux.Vars(req)["id"]
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	task, err := DB.GetTask(user.Name, id)
 	if err != nil {
@@ -84,7 +84,7 @@ func GetTaskHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateTaskHandler(rw http.ResponseWriter, req *http.Request) {
-	params, ok := httpextra.ParseForm(rw, req)
+	params, ok := httpextra.ParseForm(ContentTypes, rw, req)
 	if !ok {
 		return
 	}
@@ -96,7 +96,7 @@ func UpdateTaskHandler(rw http.ResponseWriter, req *http.Request) {
 	if user == nil {
 		return
 	}
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	task, err := DB.GetTask(user.Name, id)
 	if err != nil {
@@ -147,7 +147,7 @@ func DeleteTaskHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := mux.Vars(req)["id"]
-	res := &httpextra.Response{rw, req}
+	res := &httpextra.Response{ContentTypes, rw, req}
 
 	task, err := DB.GetTask(user.Name, id)
 	if err != nil {

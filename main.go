@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	DB     *DBConn
-	Routes = make([]*Route, 0)
-	err    error
+	DB           *DBConn
+	ContentTypes = make(map[string]*httpextra.ContentType)
+	Routes       = make([]*Route, 0)
+	err          error
 )
 
 func main() {
@@ -47,10 +48,10 @@ func main() {
 	}
 	defer DB.Close()
 
-	httpextra.AddContentType("application/json", ".json",
-		"{\"error\": \"{{message}}\"}", json.Marshal, true)
+	ContentTypes["application/json"] = &httpextra.ContentType{"application/json", ".json",
+		"{\"error\": \"{{message}}\"}", json.Marshal, true}
 	router := mux.NewRouter()
-	router.NotFoundHandler = httpextra.NotFoundHandler
+	router.NotFoundHandler = httpextra.NewNotFoundHandler(ContentTypes)
 
 	for _, r := range Routes {
 		route := router.NewRoute()
@@ -61,7 +62,7 @@ func main() {
 	server := &http.Server{
 		Addr: conf.ServerAddr,
 		Handler: httpextra.NewSlashHandler(httpextra.NewLogHandler(logFile,
-			httpextra.NewContentTypeHandler(router))),
+			httpextra.NewContentTypeHandler(ContentTypes, router))),
 		ReadTimeout:  conf.MaxTimeout,
 		WriteTimeout: conf.MaxTimeout,
 	}

@@ -9,20 +9,21 @@ import (
 // Response represents a structure that marshals content
 // to send to the client.
 type Response struct {
-	RW  http.ResponseWriter
-	Req *http.Request
+	ContentTypes map[string]*ContentType
+	RW           http.ResponseWriter
+	Req          *http.Request
 }
 
 // Send parses the response and if parsed successfully responds with the given status
 // code, otherwise a 500 is sent with the formats default error message.
 func (res *Response) Send(data interface{}, status int) {
-	res.send(data, status, RequestContentType(res.Req))
+	res.send(data, status, RequestContentType(res.ContentTypes, res.Req))
 }
 
 // SendDefault does the same as Send, except uses the default content type for the
 // response format.
 func (res *Response) SendDefault(data interface{}, status int) {
-	res.send(data, status, DefaultContentType())
+	res.send(data, status, DefaultContentType(res.ContentTypes))
 }
 
 // send does the actual marshal and response

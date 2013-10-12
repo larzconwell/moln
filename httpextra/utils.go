@@ -6,10 +6,10 @@ import (
 )
 
 // ParseForm parses the request form, handling errors.
-func ParseForm(rw http.ResponseWriter, req *http.Request) (url.Values, bool) {
+func ParseForm(contentTypes map[string]*ContentType, rw http.ResponseWriter, req *http.Request) (url.Values, bool) {
 	err := req.ParseForm()
 	if err != nil {
-		res := Response{rw, req}
+		res := Response{contentTypes, rw, req}
 		res.Send(map[string]string{"error": err.Error()}, http.StatusBadRequest)
 
 		return nil, false
