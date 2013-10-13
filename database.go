@@ -412,7 +412,8 @@ func (device *Device) Validate(new bool) ([]string, error) {
 // Save saves the device data, generating a token if needed.
 func (device *Device) Save(genToken bool) error {
 	if genToken {
-		tok, err := uuid.NewV5(uuid.NamespaceURL, []byte(device.User.Name+device.Name))
+		now := time.Now().String()
+		tok, err := uuid.NewV5(uuid.NamespaceURL, []byte(now+device.User.Name+device.Name))
 		if err != nil {
 			return err
 		}
