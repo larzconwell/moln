@@ -512,6 +512,7 @@ type Task struct {
 	*Conn    `json:"-" redis:"-"`
 	ID       int    `json:"id" redis:"id"`
 	Message  string `json:"message" redis:"message"`
+	Category string `json:"category" redis:"category"`
 	Complete bool   `json:"complete" redis:"complete"`
 	User     *User  `json:"-" redis:"-"`
 }

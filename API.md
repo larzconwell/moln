@@ -41,7 +41,7 @@ these are snippets and the following snippets defined below should be read in pl
 - `USER`: `{"name": ""}`
 - `DEVICE`: `{"name": "", "token": ""}`
 - `ACTIVITY`: `{"time": "", "message": ""}`
-- `TASK`: `{"id": 0, "message": "", "complete": false}`
+- `TASK`: `{"id": 0, "message": "", "category": "", "complete": false}`
 
 #### Users
 ##### POST /user
@@ -109,7 +109,7 @@ Delete a device from the authenticated user.
 ##### POST /tasks
 Create a task for the authenticated user.
 
-- Data: `message`
+- Data: `message`, `category`
 - Authentication: required
 - Response: `<TASK>`
 
@@ -128,7 +128,7 @@ Get a task from the authenticated user.
 ##### PUT /tasks/{id}
 Update a tasks data for the authenticated user.
 
-- Data: `message`, `complete`
+- Data: `message`, `category`, `complete`
 - Authenticateion: required
 - Response: `<TASK>`
 
@@ -159,7 +159,7 @@ The following list is a reference to the backend Redis keys
   - `<task>, ...`
   - Set of users task ids
 - `users:<user>:tasks:<task>`
-  - `id <task> message <message> complete <complete>`
+  - `id <task> message <message> category <category> complete <complete>`
   - Hash of task data
 - `tokens:<token>`
   - `device <device> user <user>`

@@ -30,7 +30,7 @@ func CreateTaskHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	task := &Task{Conn: conn, Message: params.Get("message"), User: user}
+	task := &Task{Conn: conn, Message: params.Get("message"), Category: params.Get("category"), User: user}
 	errs, err := task.Validate()
 	ok = HandleValidations(rw, req, errs, err)
 	if !ok {
@@ -97,6 +97,7 @@ func UpdateTaskHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	_, messageGiven := params["message"]
+	_, categoryGiven := params["category"]
 	_, completeGiven := params["complete"]
 	id := mux.Vars(req)["id"]
 	conn := Pool.Get()
@@ -120,13 +121,16 @@ func UpdateTaskHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 	task.User = user
 
-	if !messageGiven && !completeGiven {
+	if !messageGiven && !categoryGiven && !completeGiven {
 		res.Send(task, http.StatusOK)
 		return
 	}
 
 	if messageGiven {
 		task.Message = params.Get("message")
+	}
+	if categoryGiven {
+		task.Category = params.Get("category")
 	}
 	if completeGiven {
 		complete, err := strconv.ParseBool(params.Get("complete"))
