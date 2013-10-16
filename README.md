@@ -60,8 +60,8 @@ Then instead of redirecting port 80's traffic to port 3000, redirect port 443.
 
 ### Developers
 If you're interested in how the API works, or interested in building or contributing to a Moln
-client you should read the [API.md](https://raw.github.com/larzconwell/moln/master/API.md) file
+client you should read the [API.md](https://raw.github.com/moln/server/master/API.md) file
 included.
 
 ### License
-MIT licensed, see [here](https://raw.github.com/larzconwell/moln/master/README.md)
+MIT licensed, see [here](https://raw.github.com/moln/server/master/README.md)

@@ -1,0 +1,6 @@
+Create {Web,Cal,Card}Dav implementations
+  - These collections may require different authentication methods, response types,
+    and request body types
+  - WebDav can be mounted from local system and provide standard file access
+  - CalDav is typically used to sync calendars from various applications like Thunderbird and Evolution
+  - CardDav can be used to sync from CardDav Android app, and whatever else wants to use it
