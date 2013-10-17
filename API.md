@@ -158,6 +158,9 @@ The following list is a reference to the backend Redis keys
 - `users:<user>:tasks`
   - `<task>, ...`
   - Set of users task ids
+- `users:<user>:tasks:id`
+  - `"0"`
+  - Value used to get the next task id
 - `users:<user>:tasks:<task>`
   - `id <task> message <message> category <category> complete <complete>`
   - Hash of task data

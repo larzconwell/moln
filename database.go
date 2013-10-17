@@ -17,6 +17,7 @@ var (
 	ActivitiesKey = "users:{{user}}:activities"
 	ActivityKey   = "users:{{user}}:activities:{{activity}}"
 	TasksKey      = "users:{{user}}:tasks"
+	TasksIDKey    = "users:{{user}}:tasks:id"
 	TaskKey       = "users:{{user}}:tasks:{{task}}"
 	TokenKey      = "tokens:{{token}}"
 )
@@ -302,7 +303,9 @@ func (conn *Conn) DeleteTasks(name string) error {
 		}
 	}
 
-	return nil
+	// Delete task id counter
+	_, err = conn.Do("del", strings.Replace(TasksIDKey, "{{user}}", name, -1))
+	return err
 }
 
 /*
@@ -530,33 +533,33 @@ func (task *Task) Validate() ([]string, error) {
 
 // Save saves the task data, generating an id if needed.
 func (task *Task) Save(genID bool) error {
+	key := ""
 	if genID {
-		tasks, err := task.GetTasks(task.User.Name)
+		key = strings.Replace(TasksIDKey, "{{user}}", task.User.Name, -1)
+		id, err := redis.Int(task.Do("get", key))
+		if err != nil && err != redis.ErrNil {
+			return err
+		}
+
+		id, err = redis.Int(task.Do("incr", key))
 		if err != nil {
 			return err
 		}
-		largest := 0
 
-		for _, task := range tasks {
-			if task.ID > largest {
-				largest = task.ID
-			}
-		}
-
-		task.ID = largest + 1
+		task.ID = id
 	}
-	id := strconv.Itoa(task.ID)
+	idstr := strconv.Itoa(task.ID)
 
 	// Add to tasks set
-	key := strings.Replace(TasksKey, "{{user}}", task.User.Name, -1)
-	_, err := task.Do("sadd", key, id)
+	key = strings.Replace(TasksKey, "{{user}}", task.User.Name, -1)
+	_, err := task.Do("sadd", key, idstr)
 	if err != nil {
 		return err
 	}
 
 	// Add task hash
 	key = strings.Replace(TaskKey, "{{user}}", task.User.Name, -1)
-	key = strings.Replace(key, "{{task}}", id, -1)
+	key = strings.Replace(key, "{{task}}", idstr, -1)
 	_, err = task.Do("hmset", redis.Args{}.Add(key).AddFlat(task)...)
 	return err
 }
