@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/moln/server/httpextra"
+	"github.com/moln/httpextra"
 	"net/http"
 )
 

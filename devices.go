@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/moln/server/httpextra"
+	"github.com/moln/httpextra"
 	"net/http"
 )
 
