@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/moln/server/config"
 	"github.com/moln/server/httpextra"
-	"github.com/moln/server/loggers"
+	"github.com/moln/loggers"
 	"log"
 	"net/http"
 	"os"
