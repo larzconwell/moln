@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/moln/server/config"
+	"github.com/moln/config"
 	"github.com/moln/server/httpextra"
 	"github.com/moln/loggers"
 	"log"
