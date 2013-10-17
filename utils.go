@@ -67,7 +67,12 @@ func Authenticate(conn *Conn, rw http.ResponseWriter, req *http.Request) *User {
 
 	sendErr := func(err string, status int) {
 		if status == http.StatusUnauthorized {
-			rw.Header().Set("WWW-Authenticate", "Token")
+			if authType == "" {
+				authType = "token"
+			}
+			params := "realm=\"" + req.Host + "\""
+
+			rw.Header().Set("WWW-Authenticate", strings.Title(authType)+" "+params)
 		}
 
 		res := &httpextra.Response{ContentTypes, rw, req}
