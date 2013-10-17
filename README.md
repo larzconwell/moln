@@ -1,7 +1,8 @@
-Moln
+Server
 ---
 
-Moln is a simple sync API server with features similar to OwnCloud, including multiple user accounts, file sync, and much more.
+Server implements the server side of the Moln service. It provides features similar to OwnCloud
+including multiple user accounts, file sync, and much more.
 
 ### Features
 - [DONE] Multiple user accounts
@@ -18,7 +19,7 @@ Moln is a simple sync API server with features similar to OwnCloud, including mu
 1. Install Redis.
 2. Go(only the development machine needs Go).
 3. The [Foreman](https://github.com/ddollar/foreman) tool(only the development machine needs it).
-4. A clone of the server code in the GOPATH(`git clone git@github.com:larzconwell/moln $GOPATH/src/github.com/larzconwell/moln`).
+4. A clone of the server code in the GOPATH(`git clone git@github.com:moln/server $GOPATH/src/github.com/moln/server`).
 
 #### Running a Development Server
 1. Run the dev script `./dev`.
@@ -41,7 +42,7 @@ This script will do the following for each given server:
 - restart redis-server, and moln upstart processes
 
 #### Notes:
-- The servers being deployed to are assumed to be Linux.
+- The servers being deployed to are assumed to be Unix based.
 - When running in production mode on Windows, Redis connects to a UNIX Socket; so you may encounter errors.
 
 #### TLS
