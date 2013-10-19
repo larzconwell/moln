@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	ErrNoAuthorizationValue    = errors.New("Authentication: authorization header value missing")
-	ErrNoAuthorizationPassword = errors.New("Authentication: authorization header password missing")
+	ErrNoAuthValue    = errors.New("Authentication: authorization header value missing")
+	ErrNoAuthPassword = errors.New("Authentication: authorization header password missing")
 
 	ErrDeviceNameEmpty     = errors.New("Device: name cannot be empty")
 	ErrDeviceAlreadyExists = errors.New("Device: name already exists")
