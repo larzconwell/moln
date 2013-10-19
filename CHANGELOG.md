@@ -1,3 +1,7 @@
+### Oct 18, 2013
+- Use the default Redis maxmemory policy, volatile-lru instead of volatile-ttl
+- Create user activity if failed password match occurs for Basic auth
+
 ### Oct 17, 2013
 - Increment task ID using Redis incr command
 
