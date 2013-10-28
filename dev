@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 mkdir -p logs data
-go get github.com/moln/{config,loggers,httpextra}
+go get github.com/larzconwell/{loggers,httpextra}
 go get github.com/gorilla/mux
 go get code.google.com/p/go.crypto/bcrypt
 go get github.com/garyburd/redigo/redis

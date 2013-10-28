@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/moln/config"
-	"github.com/moln/httpextra"
-	"github.com/moln/loggers"
+	"github.com/larzconwell/httpextra"
+	"github.com/larzconwell/loggers"
+	"github.com/larzconwell/moln/config"
 	"log"
 	"net/http"
 	"os"

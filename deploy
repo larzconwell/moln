@@ -41,7 +41,7 @@ for login in ${@}; do
 
   echo "Compiling Moln"
   cd "${dir}"
-  GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get -u github.com/moln/{config,loggers,httpextra}
+  GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get -u github.com/larzconwell/{loggers,httpextra}
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get -u github.com/gorilla/mux
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get -u code.google.com/p/go.crypto/bcrypt
   GOOS="linux" GOARCH="${arch}" CGO_ENABLED=0 go get -u github.com/garyburd/redigo/redis
@@ -52,7 +52,7 @@ for login in ${@}; do
   ssh "${login}" "mkdir -p /mnt/www/moln/config/redis"
   ssh "${login}" '[[ -f "/etc/init/redis-server.conf" ]] && sudo stop redis-server || echo "0"' >> /dev/null
   ssh "${login}" '[[ -f "/etc/init/moln.conf" ]] && sudo stop moln || echo "0"' >> /dev/null
-  scp server "${login}:/mnt/www/moln"
+  scp moln "${login}:/mnt/www/moln"
   scp config/{environment,production}.json "${login}:/mnt/www/moln/config"
   scp config/redis/production.conf "${login}:/mnt/www/moln/config/redis"
   mkdir -p /tmp/upstartscripts
@@ -66,5 +66,5 @@ for login in ${@}; do
   echo ""
 done
 
-rm server
+rm moln
 rm -r /tmp/upstartscripts

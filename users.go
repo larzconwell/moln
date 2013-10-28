@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/moln/httpextra"
+	"github.com/larzconwell/httpextra"
 	"net/http"
 )
 
